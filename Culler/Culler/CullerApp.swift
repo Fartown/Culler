@@ -9,10 +9,12 @@ struct CullerApp: App {
             Album.self,
             Tag.self
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: UITestConfig.isEnabled)
 
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
+            UITestDataSeeder.seedIfNeeded(into: container.mainContext)
+            return container
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
@@ -29,6 +31,9 @@ struct CullerApp: App {
             CommandGroup(replacing: .newItem) {}
             ImportCommands()
             PhotoCommands()
+            if UITestConfig.isEnabled {
+                DebugCommands()
+            }
         }
     }
 }
@@ -89,4 +94,20 @@ extension Notification.Name {
     static let navigateUp = Notification.Name("navigateUp")
     static let navigateDown = Notification.Name("navigateDown")
     static let selectAll = Notification.Name("selectAll")
+}
+
+struct DebugCommands: Commands {
+    var body: some Commands {
+        CommandMenu("Debug") {
+            Button("Open Album Manager") {
+                NotificationCenter.default.post(name: UITestNotifications.openAlbumManager, object: nil)
+            }
+            .keyboardShortcut("m", modifiers: [.command, .shift])
+
+            Button("Reset Demo Data") {
+                NotificationCenter.default.post(name: UITestNotifications.resetDemoData, object: nil)
+            }
+            .keyboardShortcut("r", modifiers: [.command, .shift])
+        }
+    }
 }

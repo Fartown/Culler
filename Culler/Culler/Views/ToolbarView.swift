@@ -8,13 +8,13 @@ struct ToolbarView: View {
     var body: some View {
         HStack {
             HStack(spacing: 4) {
-                ToolbarButton(icon: "square.grid.3x3", isSelected: viewMode == .grid) {
+                ToolbarButton(icon: "square.grid.3x3", identifier: "toolbar_grid", isSelected: viewMode == .grid) {
                     viewMode = .grid
                 }
-                ToolbarButton(icon: "photo", isSelected: viewMode == .single) {
+                ToolbarButton(icon: "photo", identifier: "toolbar_single", isSelected: viewMode == .single) {
                     viewMode = .single
                 }
-                ToolbarButton(icon: "arrow.up.left.and.arrow.down.right", isSelected: viewMode == .fullscreen) {
+                ToolbarButton(icon: "arrow.up.left.and.arrow.down.right", identifier: "toolbar_fullscreen", isSelected: viewMode == .fullscreen) {
                     viewMode = .fullscreen
                 }
             }
@@ -61,6 +61,7 @@ struct ToolbarView: View {
 
 struct ToolbarButton: View {
     let icon: String
+    let identifier: String
     let isSelected: Bool
     let action: () -> Void
 
@@ -74,5 +75,6 @@ struct ToolbarButton: View {
                 .cornerRadius(4)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(identifier)
     }
 }

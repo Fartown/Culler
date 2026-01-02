@@ -17,6 +17,7 @@ struct ContentView: View {
     @State private var filterFlag: Flag? = nil
     @State private var filterColorLabel: ColorLabel? = nil
     @State private var filterFolder: String? = nil
+    @State private var showAlbumManager = false
 
     enum ViewMode {
         case grid, single, fullscreen, folderManagement
@@ -146,6 +147,10 @@ struct ContentView: View {
         .sheet(isPresented: $showImportSheet) {
             ImportView(isPresented: $showImportSheet)
         }
+        .sheet(isPresented: $showAlbumManager) {
+            AlbumManagementView()
+                .frame(minWidth: 900, minHeight: 600)
+        }
         .onChange(of: viewMode) { _, newValue in
             if (newValue == .single || newValue == .fullscreen), currentPhoto == nil {
                 if let id = selectedPhotos.first, let photo = photos.first(where: { $0.id == id }) {
@@ -172,6 +177,19 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .selectAll)) { _ in
             selectedPhotos = Set(filteredPhotos.map { $0.id })
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UITestNotifications.openAlbumManager)) { _ in
+            showAlbumManager = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UITestNotifications.resetDemoData)) { _ in
+            UITestDataSeeder.reset(into: modelContext)
+            selectedPhotos = []
+            currentPhoto = nil
+            viewMode = .grid
+            filterRating = 0
+            filterFlag = nil
+            filterColorLabel = nil
+            filterFolder = nil
         }
         .onAppear {
             KeyboardShortcutManager.shared.start()

@@ -26,7 +26,9 @@
 		017 /* AppErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118; };
 		018 /* ImportErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119; };
 		019 /* KeyboardShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 120; };
-		020 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118; };
+		020 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 121; };
+		021 /* UITestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 122; };
+		022 /* CullerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 123; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -52,10 +54,20 @@
 		119 /* ImportErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportErrorView.swift; sourceTree = "<group>"; };
 		120 /* KeyboardShortcutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutManager.swift; sourceTree = "<group>"; };
 		121 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
+		122 /* UITestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestSupport.swift; sourceTree = "<group>"; };
+		123 /* CullerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CullerUITests.swift; sourceTree = "<group>"; };
+		124 /* CullerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CullerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		200 = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		210 = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -69,6 +81,7 @@
 			isa = PBXGroup;
 			children = (
 				301 /* Culler */,
+				309 /* CullerUITests */,
 				302 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -77,6 +90,7 @@
 			isa = PBXGroup;
 			children = (
 				101 /* CullerApp.swift */,
+				308 /* Testing */,
 				303 /* Models */,
 				304 /* Views */,
 				305 /* Services */,
@@ -91,6 +105,7 @@
 			isa = PBXGroup;
 			children = (
 				100 /* Culler.app */,
+				124 /* CullerUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -120,7 +135,7 @@
 				113 /* ImportView.swift */,
 				119 /* ImportErrorView.swift */,
 				115 /* AlbumManagementView.swift */,
-				118 /* EmptyStateView.swift */,
+				121 /* EmptyStateView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -139,6 +154,22 @@
 			children = (
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		308 /* Testing */ = {
+			isa = PBXGroup;
+			children = (
+				122 /* UITestSupport.swift */,
+			);
+			path = Testing;
+			sourceTree = "<group>";
+		};
+		309 /* CullerUITests */ = {
+			isa = PBXGroup;
+			children = (
+				123 /* CullerUITests.swift */,
+			);
+			path = CullerUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -161,6 +192,22 @@
 			productReference = 100 /* Culler.app */;
 			productType = "com.apple.product-type.application";
 		};
+		410 /* CullerUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 510;
+			buildPhases = (
+				411 /* Sources */,
+				210 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CullerUITests;
+			productName = CullerUITests;
+			productReference = 124 /* CullerUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -172,6 +219,9 @@
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					400 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+					410 = {
 						CreatedOnToolsVersion = 15.0;
 					};
 				};
@@ -190,6 +240,7 @@
 			projectRoot = "";
 			targets = (
 				400 /* Culler */,
+				410 /* CullerUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -229,6 +280,15 @@
 				018 /* ImportErrorView.swift in Sources */,
 				019 /* KeyboardShortcutManager.swift in Sources */,
 				020 /* EmptyStateView.swift in Sources */,
+				021 /* UITestSupport.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		411 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				022 /* CullerUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -403,6 +463,36 @@
 			};
 			name = Release;
 		};
+		704 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = CullerUITests;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.culler.app.CullerUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = Culler;
+			};
+			name = Debug;
+		};
+		705 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = CullerUITests;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.culler.app.CullerUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = Culler;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -414,6 +504,15 @@
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
+		};
+		510 = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				704 /* Debug */,
+				705 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
 		};
 		601 = {
 			isa = XCConfigurationList;

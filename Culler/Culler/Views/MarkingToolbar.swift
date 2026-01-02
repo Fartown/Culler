@@ -52,14 +52,17 @@ struct MarkingToolbar: View {
             FlagButton(flag: .pick, icon: "checkmark.circle.fill", color: .green, shortcut: "P") {
                 setFlag(.pick)
             }
+            .accessibilityIdentifier("mark_flag_pick")
 
             FlagButton(flag: .reject, icon: "xmark.circle.fill", color: .red, shortcut: "X") {
                 setFlag(.reject)
             }
+            .accessibilityIdentifier("mark_flag_reject")
 
             FlagButton(flag: .none, icon: "circle", color: .gray, shortcut: "U") {
                 setFlag(.none)
             }
+            .accessibilityIdentifier("mark_flag_none")
         }
     }
 
@@ -73,6 +76,7 @@ struct MarkingToolbar: View {
                 RatingButton(rating: rating) {
                     setRating(rating)
                 }
+                .accessibilityIdentifier("mark_rating_\(rating)")
             }
 
             Button(action: { setRating(0) }) {
@@ -81,6 +85,8 @@ struct MarkingToolbar: View {
                     .foregroundColor(.secondary)
             }
             .buttonStyle(PressableButtonStyle())
+            .buttonStyle(PressableButtonStyle())
+            .accessibilityIdentifier("mark_rating_clear")
         }
     }
 
@@ -95,6 +101,7 @@ struct MarkingToolbar: View {
                     ColorLabelButton(colorLabel: label) {
                         setColorLabel(label)
                     }
+                    .accessibilityIdentifier("mark_color_\(label.rawValue)")
                 }
             }
         }

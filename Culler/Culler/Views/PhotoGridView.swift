@@ -34,6 +34,7 @@ struct PhotoGridView: View {
                                 isHovered: hoveredPhoto == photo.id,
                                 size: thumbnailSize
                             )
+                            .accessibilityIdentifier("photo_thumbnail")
                             .onTapGesture {
                                 handleSelection(photo: photo, shiftKey: NSEvent.modifierFlags.contains(.shift))
                             }

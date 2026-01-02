@@ -39,6 +39,7 @@ struct FullscreenView: View {
                                 .clipShape(Circle())
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("fullscreen_exit")
                         .padding()
                         .onTapGesture { }
                     }
