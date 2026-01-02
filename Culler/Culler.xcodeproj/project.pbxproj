@@ -31,6 +31,7 @@
 		023 /* FolderNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 125; };
 		024 /* FoldersTreeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 126; };
 		025 /* UITestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 127; };
+        026 /* FolderPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 128; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -61,6 +62,7 @@
 		125 /* FolderNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderNode.swift; sourceTree = "<group>"; };
 		126 /* FoldersTreeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoldersTreeView.swift; sourceTree = "<group>"; };
 		127 /* UITestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestSupport.swift; sourceTree = "<group>"; };
+        128 /* FolderPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderPreviewView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -135,6 +137,7 @@
 				115 /* AlbumManagementView.swift */,
 				121 /* EmptyStateView.swift */,
 				126 /* FoldersTreeView.swift */,
+                128 /* FolderPreviewView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -256,6 +259,7 @@
 				023 /* FolderNode.swift in Sources */,
 				024 /* FoldersTreeView.swift in Sources */,
 				025 /* UITestSupport.swift in Sources */,
+                026 /* FolderPreviewView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

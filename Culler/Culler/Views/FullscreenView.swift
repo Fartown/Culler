@@ -9,6 +9,8 @@ struct FullscreenView: View {
     @State private var image: NSImage?
     @State private var loadError: ImageLoadError?
     @State private var showControls = true
+    @State private var scale: CGFloat = 1.0
+    @State private var baseScale: CGFloat = 1.0
 
     var currentIndex: Int {
         photos.firstIndex(where: { $0.id == photo.id }) ?? 0
@@ -22,6 +24,16 @@ struct FullscreenView: View {
                 Image(nsImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
+                    .scaleEffect(scale)
+                    .gesture(
+                        MagnificationGesture()
+                            .onChanged { value in
+                                scale = max(1.0, min(baseScale * value, 5.0))
+                            }
+                            .onEnded { value in
+                                baseScale = max(1.0, min(baseScale * value, 5.0))
+                            }
+                    )
             } else {
                 ProgressView()
             }
@@ -90,6 +102,15 @@ struct FullscreenView: View {
         .onTapGesture {
             showControls.toggle()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .zoomIn)) { _ in
+            withAnimation { scale = min(scale * 1.2, 5.0) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .zoomOut)) { _ in
+            withAnimation { scale = max(scale / 1.2, 1.0) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .zoomReset)) { _ in
+            withAnimation { scale = 1.0 }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .navigateLeft)) { _ in
             if currentIndex > 0 {
                 currentPhoto = photos[currentIndex - 1]
@@ -121,6 +142,8 @@ struct FullscreenView: View {
     private func loadImage() {
         self.image = nil
         self.loadError = nil
+        self.scale = 1.0
+        self.baseScale = 1.0
         
         Task {
             let maxSide = CGFloat(max(photo.width ?? 0, photo.height ?? 0))

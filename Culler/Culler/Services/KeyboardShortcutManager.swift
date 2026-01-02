@@ -4,6 +4,7 @@ final class KeyboardShortcutManager {
     static let shared = KeyboardShortcutManager()
 
     private var monitor: Any?
+    private var scrollMonitor: Any?
 
     func start() {
         if monitor != nil { return }
@@ -11,12 +12,22 @@ final class KeyboardShortcutManager {
             guard let self = self else { return event }
             return self.handle(event)
         }
+        if scrollMonitor == nil {
+            scrollMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
+                guard let self = self else { return event }
+                return self.handleScroll(event)
+            }
+        }
     }
 
     func stop() {
         if let monitor = monitor {
             NSEvent.removeMonitor(monitor)
             self.monitor = nil
+        }
+        if let monitor = scrollMonitor {
+            NSEvent.removeMonitor(monitor)
+            self.scrollMonitor = nil
         }
     }
 
@@ -32,10 +43,30 @@ final class KeyboardShortcutManager {
         mods.remove(.numericPad)
         mods.remove(.function)
 
-        if let chars = event.charactersIgnoringModifiers?.lowercased(), mods == [.command] {
-            if chars == "a" {
-                NotificationCenter.default.post(name: .selectAll, object: nil)
-                return nil
+        if let chars = event.charactersIgnoringModifiers?.lowercased() {
+            if mods == [.command] {
+                if chars == "a" {
+                    NotificationCenter.default.post(name: .selectAll, object: nil)
+                    return nil
+                }
+                if chars == "=" {
+                    NotificationCenter.default.post(name: .zoomIn, object: nil)
+                    return nil
+                }
+                if chars == "-" {
+                    NotificationCenter.default.post(name: .zoomOut, object: nil)
+                    return nil
+                }
+                if chars == "0" {
+                    NotificationCenter.default.post(name: .zoomReset, object: nil)
+                    return nil
+                }
+            }
+            if mods == [.command, .shift] {
+                if chars == "=" {
+                    NotificationCenter.default.post(name: .zoomIn, object: nil)
+                    return nil
+                }
             }
         }
 
@@ -81,6 +112,21 @@ final class KeyboardShortcutManager {
         if event.keyCode == 126 {
             NotificationCenter.default.post(name: .navigateUp, object: nil)
             return nil
+        }
+        return event
+    }
+
+    private func handleScroll(_ event: NSEvent) -> NSEvent? {
+        if !NSApp.isActive { return event }
+        if let window = NSApp.keyWindow, window.attachedSheet != nil { return event }
+        if let responder = NSApp.keyWindow?.firstResponder {
+            if responder is NSTextView || responder is NSTextField { return event }
+        }
+        let dy = event.scrollingDeltaY != 0 ? event.scrollingDeltaY : event.deltaY
+        if dy > 0 {
+            NotificationCenter.default.post(name: .zoomIn, object: nil)
+        } else if dy < 0 {
+            NotificationCenter.default.post(name: .zoomOut, object: nil)
         }
         return event
     }

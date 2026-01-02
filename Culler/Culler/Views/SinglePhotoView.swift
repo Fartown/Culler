@@ -7,6 +7,7 @@ struct SinglePhotoView: View {
     var onBack: () -> Void
 
     @State private var scale: CGFloat = 1.0
+    @State private var baseScale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
     @State private var image: NSImage?
     @State private var loadError: ImageLoadError?
@@ -30,7 +31,11 @@ struct SinglePhotoView: View {
                         .gesture(
                             MagnificationGesture()
                                 .onChanged { value in
-                                    scale = max(1.0, min(value, 5.0))
+                                    scale = max(1.0, min(baseScale * value, 5.0))
+                                }
+                                .onEnded { value in
+                                    baseScale = max(1.0, min(baseScale * value, 5.0))
+                                    if baseScale == 1.0 { offset = .zero }
                                 }
                         )
                         .gesture(
@@ -102,7 +107,9 @@ struct SinglePhotoView: View {
 
                         Spacer()
 
-                        Button(action: {}) {
+                        Button(action: {
+                            NotificationCenter.default.post(name: .enterFullscreen, object: nil)
+                        }) {
                             Image(systemName: "arrow.up.left.and.arrow.down.right")
                                 .font(.title2)
                                 .foregroundColor(.white)
@@ -147,6 +154,23 @@ struct SinglePhotoView: View {
         .onReceive(NotificationCenter.default.publisher(for: .navigateRight)) { _ in
             navigateNext()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .zoomIn)) { _ in
+            withAnimation {
+                scale = min(scale * 1.2, 5.0)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .zoomOut)) { _ in
+            withAnimation {
+                scale = max(scale / 1.2, 1.0)
+                if scale == 1.0 { offset = .zero }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .zoomReset)) { _ in
+            withAnimation {
+                scale = 1.0
+                offset = .zero
+            }
+        }
         .onKeyPress(.leftArrow) {
             navigatePrevious()
             return .handled
@@ -162,6 +186,7 @@ struct SinglePhotoView: View {
         self.image = nil
         self.loadError = nil
         self.scale = 1.0
+        self.baseScale = 1.0
         self.offset = .zero
 
         Task {

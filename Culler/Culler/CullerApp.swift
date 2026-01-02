@@ -30,6 +30,7 @@ struct CullerApp: App {
             CommandGroup(replacing: .newItem) {}
             ImportCommands()
             PhotoCommands()
+            FolderCommands()
             
         }
     }
@@ -91,6 +92,22 @@ extension Notification.Name {
     static let navigateUp = Notification.Name("navigateUp")
     static let navigateDown = Notification.Name("navigateDown")
     static let selectAll = Notification.Name("selectAll")
+    static let enterFullscreen = Notification.Name("enterFullscreen")
+    static let enterFolderBrowser = Notification.Name("enterFolderBrowser")
+    static let zoomIn = Notification.Name("zoomIn")
+    static let zoomOut = Notification.Name("zoomOut")
+    static let zoomReset = Notification.Name("zoomReset")
+}
+
+struct FolderCommands: Commands {
+    var body: some Commands {
+        CommandMenu("Folders") {
+            Button("Folder Browser") {
+                NotificationCenter.default.post(name: .enterFolderBrowser, object: nil)
+            }
+            .keyboardShortcut("f", modifiers: [.command, .shift])
+        }
+    }
 }
 
  

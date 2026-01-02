@@ -9,6 +9,7 @@ struct SidebarView: View {
     @Binding var filterColorLabel: ColorLabel?
     @Binding var filterFolder: String?
     @Binding var viewMode: ContentView.ViewMode
+    @Binding var showLeftNav: Bool
 
     @State private var showNewAlbumSheet = false
     @State private var newAlbumName = ""
@@ -17,11 +18,21 @@ struct SidebarView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("CULLER")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 16)
+                HStack {
+                    Text("CULLER")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.white)
+                    Spacer()
+                    Button {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { showLeftNav = false }
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
 
                 Button(action: { showImportSheet = true }) {
                     HStack {
@@ -49,8 +60,8 @@ struct SidebarView: View {
                             filterFolder = nil
                             viewMode = .grid
                         }
-                        SidebarItem(icon: "folder", title: "Folders", isSelected: viewMode == .folderManagement) {
-                            viewMode = .folderManagement
+                        SidebarItem(icon: "folder", title: "Folders", isSelected: viewMode == .folderBrowser) {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { viewMode = .folderBrowser }
                             filterFlag = nil
                             filterFolder = nil
                         }

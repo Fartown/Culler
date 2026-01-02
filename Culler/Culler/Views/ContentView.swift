@@ -19,9 +19,11 @@ struct ContentView: View {
     @State private var filterFolder: String? = nil
     @State private var showAlbumManager = false
     @State private var includeSubfolders: Bool = false
+    @State private var showLeftNav: Bool = true
+    @State private var showRightPanel: Bool = true
 
     enum ViewMode {
-        case grid, single, fullscreen, folderManagement
+        case grid, single, fullscreen, folderManagement, folderBrowser
     }
 
     var filteredPhotos: [Photo] {
@@ -51,17 +53,44 @@ struct ContentView: View {
 
     var body: some View {
         HSplitView {
-            SidebarView(
-                albums: albums,
-                showImportSheet: $showImportSheet,
-                filterRating: $filterRating,
-                filterFlag: $filterFlag,
-                filterColorLabel: $filterColorLabel,
-                filterFolder: $filterFolder,
-                viewMode: $viewMode
-            )
-            .frame(minWidth: 160, idealWidth: 160, maxWidth: 300)
-            .layoutPriority(0)
+            if showLeftNav {
+                SidebarView(
+                    albums: albums,
+                    showImportSheet: $showImportSheet,
+                    filterRating: $filterRating,
+                    filterFlag: $filterFlag,
+                    filterColorLabel: $filterColorLabel,
+                    filterFolder: $filterFolder,
+                    viewMode: $viewMode,
+                    showLeftNav: $showLeftNav
+                )
+                .frame(minWidth: 160, idealWidth: 180, maxWidth: 300)
+                .layoutPriority(0)
+            }
+
+            if viewMode == .folderBrowser {
+                let nodes = FolderNode.buildTreeWithFiles(from: photos)
+                FoldersTreeView(
+                    nodes: nodes,
+                    onSelect: { node in
+                        filterFolder = node.fullPath
+                    },
+                    onRevealInFinder: { node in
+                        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: node.fullPath)
+                    },
+                    onDeleteRecursively: { node in
+                        deleteNodeRecursively(node)
+                    },
+                    onDeleteFromDisk: { node in
+                        deleteNodeFromDisk(node)
+                    },
+                    onImport: {
+                        NotificationCenter.default.post(name: .importPhotos, object: nil)
+                    }
+                )
+                .frame(minWidth: 220, idealWidth: 280, maxWidth: 400)
+                .layoutPriority(0)
+            }
 
             VStack(spacing: 0) {
                 ToolbarView(
@@ -136,20 +165,73 @@ struct ContentView: View {
                             viewMode: $viewMode,
                             includeSubfolders: $includeSubfolders
                         )
+                    case .folderBrowser:
+                        FolderPreviewView(
+                            photos: filteredPhotos,
+                            selectedPhotos: $selectedPhotos,
+                            currentPhoto: $currentPhoto,
+                            includeSubfolders: $includeSubfolders,
+                            folderPath: filterFolder
+                        )
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .layoutPriority(1)
-
-                
+                .overlay(alignment: .topLeading) {
+                    if !showLeftNav {
+                        Button {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { showLeftNav = true }
+                        } label: {
+                            Image(systemName: "sidebar.leading")
+                                .padding(6)
+                        }
+                        .buttonStyle(.plain)
+                        .background(Color(NSColor(hex: "#2a2a2a")))
+                        .cornerRadius(6)
+                        .padding(.leading, 8)
+                        .padding(.top, 8)
+                    }
+                }
+                .overlay(alignment: .topTrailing) {
+                    if !showRightPanel {
+                        Button {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { showRightPanel = true }
+                        } label: {
+                            Image(systemName: "sidebar.trailing")
+                                .padding(6)
+                        }
+                        .buttonStyle(.plain)
+                        .background(Color(NSColor(hex: "#2a2a2a")))
+                        .cornerRadius(6)
+                        .padding(.trailing, 8)
+                        .padding(.top, 8)
+                    }
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .layoutPriority(1)
 
-            if viewMode != .fullscreen, let photo = currentPhoto ?? selectedPhotos.first.flatMap({ id in photos.first { $0.id == id } }) {
-                InfoPanelView(photo: photo)
-                    .frame(minWidth: 220, idealWidth: 220, maxWidth: 450)
-                    .layoutPriority(0)
+            if showRightPanel, viewMode != .fullscreen,
+               let photo = currentPhoto ?? selectedPhotos.first.flatMap({ id in photos.first { $0.id == id } }) {
+                VStack(spacing: 0) {
+                    HStack {
+                        Text("信息")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Button {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { showRightPanel = false }
+                        } label: { Image(systemName: "chevron.right") }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+
+                    InfoPanelView(photo: photo)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .frame(minWidth: 220, idealWidth: 240, maxWidth: 450)
+                .layoutPriority(0)
             }
         }
         .background(Color(NSColor(hex: "#1a1a1a")))
@@ -183,6 +265,16 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .importPhotos)) { _ in
             showImportSheet = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .enterFolderBrowser)) { _ in
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) {
+                viewMode = .folderBrowser
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .enterFullscreen)) { _ in
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) {
+                viewMode = .fullscreen
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .setFlag)) { notification in
             if let flag = notification.object as? Flag {
@@ -241,6 +333,20 @@ struct ContentView: View {
                 photo.rating = rating
             }
         }
+    }
+
+    private func deleteNodeRecursively(_ node: FolderNode) {
+        for p in node.photos { modelContext.delete(p) }
+        for child in node.children ?? [] { deleteNodeRecursively(child) }
+    }
+
+    private func deleteNodeFromDisk(_ node: FolderNode) {
+        let fm = FileManager.default
+        for p in node.photos {
+            try? fm.removeItem(atPath: p.filePath)
+            modelContext.delete(p)
+        }
+        for child in node.children ?? [] { deleteNodeFromDisk(child) }
     }
 }
 
