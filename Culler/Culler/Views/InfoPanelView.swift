@@ -101,11 +101,10 @@ struct InfoPanelView: View {
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
-
-                Spacer()
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 16)
+            .padding(.bottom, 72)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Color(NSColor(hex: "#252525")))

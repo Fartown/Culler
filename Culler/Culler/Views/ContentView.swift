@@ -11,7 +11,6 @@ struct ContentView: View {
     @State private var viewMode: ViewMode = .grid
     @State private var showImportSheet = false
     @State private var showFilterPanel = true
-    @State private var sidebarWidth: CGFloat = 200
     @State private var gridScrollAnchor: UUID?
 
     @State private var filterRating: Int = 0
@@ -56,7 +55,8 @@ struct ContentView: View {
                 filterFolder: $filterFolder,
                 viewMode: $viewMode
             )
-            .frame(minWidth: 180, idealWidth: 180, maxWidth: 300)
+            .frame(minWidth: 160, idealWidth: 160, maxWidth: 300)
+            .layoutPriority(0)
 
             VStack(spacing: 0) {
                 ToolbarView(
@@ -138,6 +138,7 @@ struct ContentView: View {
                 
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .layoutPriority(1)
 
             if viewMode != .fullscreen, let photo = currentPhoto ?? selectedPhotos.first.flatMap({ id in photos.first { $0.id == id } }) {
                 InfoPanelView(photo: photo)
