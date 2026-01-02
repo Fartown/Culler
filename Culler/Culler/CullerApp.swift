@@ -88,4 +88,5 @@ extension Notification.Name {
     static let navigateRight = Notification.Name("navigateRight")
     static let navigateUp = Notification.Name("navigateUp")
     static let navigateDown = Notification.Name("navigateDown")
+    static let selectAll = Notification.Name("selectAll")
 }

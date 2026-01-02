@@ -167,6 +167,9 @@ struct ContentView: View {
                 setRatingForSelected(rating)
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .selectAll)) { _ in
+            selectedPhotos = Set(filteredPhotos.map { $0.id })
+        }
         .onAppear {
             KeyboardShortcutManager.shared.start()
         }

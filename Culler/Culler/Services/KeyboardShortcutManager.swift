@@ -31,6 +31,14 @@ final class KeyboardShortcutManager {
         var mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         mods.remove(.numericPad)
         mods.remove(.function)
+
+        if let chars = event.charactersIgnoringModifiers?.lowercased(), mods == [.command] {
+            if chars == "a" {
+                NotificationCenter.default.post(name: .selectAll, object: nil)
+                return nil
+            }
+        }
+
         if !mods.isEmpty { return event }
 
         guard let chars = event.charactersIgnoringModifiers?.lowercased() else { return event }

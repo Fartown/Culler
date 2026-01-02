@@ -44,9 +44,13 @@ struct PhotoGridView: View {
                             .onHover { isHovered in
                                 hoveredPhoto = isHovered ? photo.id : nil
                             }
-                            .contextMenu {
-                                PhotoContextMenu(photo: photo)
-                            }
+                    .contextMenu {
+                        PhotoContextMenu(
+                            targets: selectedPhotos.contains(photo.id)
+                                ? photos.filter { selectedPhotos.contains($0.id) }
+                                : [photo]
+                        )
+                    }
                         }
                     }
                     .padding(16)
@@ -287,20 +291,21 @@ struct AsyncThumbnailView: View {
 }
 
 struct PhotoContextMenu: View {
-    let photo: Photo
+    @Environment(\.modelContext) private var modelContext
+    let targets: [Photo]
 
     var body: some View {
         Group {
             Menu("Flag") {
-                Button("Pick") { photo.flag = .pick }
-                Button("Reject") { photo.flag = .reject }
-                Button("Unflag") { photo.flag = .none }
+                Button("Pick") { targets.forEach { $0.flag = .pick } }
+                Button("Reject") { targets.forEach { $0.flag = .reject } }
+                Button("Unflag") { targets.forEach { $0.flag = .none } }
             }
 
             Menu("Rating") {
                 ForEach(0...5, id: \.self) { rating in
                     Button(rating == 0 ? "Clear" : String(repeating: "★", count: rating)) {
-                        photo.rating = rating
+                        targets.forEach { $0.rating = rating }
                     }
                 }
             }
@@ -308,16 +313,50 @@ struct PhotoContextMenu: View {
             Menu("Color Label") {
                 ForEach(ColorLabel.allCases, id: \.rawValue) { label in
                     Button(label.name) {
-                        photo.colorLabel = label
+                        targets.forEach { $0.colorLabel = label }
                     }
                 }
             }
 
             Divider()
 
-            Button("Show in Finder") {
-                NSWorkspace.shared.selectFile(photo.filePath, inFileViewerRootedAtPath: "")
+            Button("取消标记") {
+                targets.forEach { $0.flag = .none }
+            }
+
+            Button(role: .destructive) {
+                targets.forEach { modelContext.delete($0) }
+            } label: {
+                Text("从导入删除")
+            }
+
+            Button(role: .destructive) {
+                targets.forEach { deleteFromDisk($0) }
+            } label: {
+                Text("从磁盘删除")
+            }
+
+            if let single = targets.first, targets.count == 1 {
+                Divider()
+                Button("Show in Finder") {
+                    NSWorkspace.shared.selectFile(single.filePath, inFileViewerRootedAtPath: "")
+                }
             }
         }
+    }
+
+    private func deleteFromDisk(_ photo: Photo) {
+        let url = photo.fileURL
+        var didStart = false
+        if photo.bookmarkData != nil {
+            didStart = url.startAccessingSecurityScopedResource()
+        }
+        defer {
+            if didStart { url.stopAccessingSecurityScopedResource() }
+        }
+        if FileManager.default.fileExists(atPath: url.path) {
+            try? FileManager.default.removeItem(at: url)
+        }
+        modelContext.delete(photo)
     }
 }
