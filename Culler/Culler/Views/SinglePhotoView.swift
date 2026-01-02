@@ -111,6 +111,7 @@ struct SinglePhotoView: View {
                                 .clipShape(Circle())
                         }
                         .buttonStyle(.plain)
+                        .onTapGesture { }
                     }
                     .padding()
 
@@ -139,6 +140,12 @@ struct SinglePhotoView: View {
         }
         .onChange(of: photo.id) { _, _ in
             loadFullImage()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .navigateLeft)) { _ in
+            navigatePrevious()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .navigateRight)) { _ in
+            navigateNext()
         }
         .onKeyPress(.leftArrow) {
             navigatePrevious()

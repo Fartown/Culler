@@ -40,6 +40,7 @@ struct FullscreenView: View {
                         }
                         .buttonStyle(.plain)
                         .padding()
+                        .onTapGesture { }
                     }
 
                     Spacer()
@@ -87,6 +88,16 @@ struct FullscreenView: View {
         }
         .onTapGesture {
             showControls.toggle()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .navigateLeft)) { _ in
+            if currentIndex > 0 {
+                currentPhoto = photos[currentIndex - 1]
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .navigateRight)) { _ in
+            if currentIndex < photos.count - 1 {
+                currentPhoto = photos[currentIndex + 1]
+            }
         }
         .onKeyPress(.escape) {
             onExit()

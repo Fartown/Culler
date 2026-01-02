@@ -54,7 +54,7 @@ struct ContentView: View {
                 filterFolder: $filterFolder,
                 viewMode: $viewMode
             )
-            .frame(minWidth: 180, maxWidth: 300)
+            .frame(minWidth: 180, idealWidth: 180, maxWidth: 300)
 
             VStack(spacing: 0) {
                 ToolbarView(
@@ -117,7 +117,7 @@ struct ContentView: View {
 
             if viewMode != .fullscreen, let photo = currentPhoto ?? selectedPhotos.first.flatMap({ id in photos.first { $0.id == id } }) {
                 InfoPanelView(photo: photo)
-                    .frame(minWidth: 220, idealWidth: 320, maxWidth: 450)
+                    .frame(minWidth: 220, idealWidth: 220, maxWidth: 450)
                     .layoutPriority(2)
             }
         }
@@ -145,9 +145,22 @@ struct ContentView: View {
                 setRatingForSelected(rating)
             }
         }
+        .onAppear {
+            KeyboardShortcutManager.shared.start()
+        }
+        .onDisappear {
+            KeyboardShortcutManager.shared.stop()
+        }
     }
 
     private func setFlagForSelected(_ flag: Flag) {
+        if let photo = currentPhoto {
+            photo.flag = flag
+            return
+        }
+        if selectedPhotos.isEmpty {
+            return
+        }
         for id in selectedPhotos {
             if let photo = photos.first(where: { $0.id == id }) {
                 photo.flag = flag
@@ -156,6 +169,13 @@ struct ContentView: View {
     }
 
     private func setRatingForSelected(_ rating: Int) {
+        if let photo = currentPhoto {
+            photo.rating = rating
+            return
+        }
+        if selectedPhotos.isEmpty {
+            return
+        }
         for id in selectedPhotos {
             if let photo = photos.first(where: { $0.id == id }) {
                 photo.rating = rating

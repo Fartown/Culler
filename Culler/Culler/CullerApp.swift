@@ -84,4 +84,8 @@ extension Notification.Name {
     static let setFlag = Notification.Name("setFlag")
     static let setRating = Notification.Name("setRating")
     static let setColorLabel = Notification.Name("setColorLabel")
+    static let navigateLeft = Notification.Name("navigateLeft")
+    static let navigateRight = Notification.Name("navigateRight")
+    static let navigateUp = Notification.Name("navigateUp")
+    static let navigateDown = Notification.Name("navigateDown")
 }

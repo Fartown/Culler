@@ -58,7 +58,7 @@ struct AlbumManagementView: View {
                     .padding()
                 }
             }
-            .frame(minWidth: 200, maxWidth: 300)
+            .frame(minWidth: 200, idealWidth: 200, maxWidth: 300)
             .background(Color(NSColor(hex: "#252525")))
 
             if let album = selectedAlbum {

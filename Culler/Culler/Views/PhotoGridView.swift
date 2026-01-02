@@ -8,6 +8,7 @@ struct PhotoGridView: View {
 
     @State private var thumbnailSize: CGFloat = 150
     @State private var hoveredPhoto: UUID?
+    @State private var viewportWidth: CGFloat = 0
 
     private let columns = [GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 8)]
 
@@ -39,6 +40,42 @@ struct PhotoGridView: View {
             .padding(16)
         }
         .background(Color(NSColor(hex: "#1a1a1a")))
+        .background(
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear { viewportWidth = proxy.size.width }
+                    .onChange(of: proxy.size.width) { _, newValue in viewportWidth = newValue }
+            }
+        )
+        .onAppear {}
+        .onReceive(NotificationCenter.default.publisher(for: .navigateLeft)) { _ in
+            navigateBy(delta: -1)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .navigateRight)) { _ in
+            navigateBy(delta: 1)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .navigateUp)) { _ in
+            navigateBy(delta: -gridStride())
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .navigateDown)) { _ in
+            navigateBy(delta: gridStride())
+        }
+        .onKeyPress(.leftArrow) {
+            navigateBy(delta: -1)
+            return .handled
+        }
+        .onKeyPress(.rightArrow) {
+            navigateBy(delta: 1)
+            return .handled
+        }
+        .onKeyPress(.upArrow) {
+            navigateBy(delta: -gridStride())
+            return .handled
+        }
+        .onKeyPress(.downArrow) {
+            navigateBy(delta: gridStride())
+            return .handled
+        }
     }
 
     private func handleSelection(photo: Photo, shiftKey: Bool) {
@@ -52,6 +89,30 @@ struct PhotoGridView: View {
             selectedPhotos = [photo.id]
         }
         currentPhoto = photo
+    }
+
+    private func currentIndex() -> Int {
+        if let current = currentPhoto, let idx = photos.firstIndex(where: { $0.id == current.id }) { return idx }
+        if let id = selectedPhotos.first, let idx = photos.firstIndex(where: { $0.id == id }) { return idx }
+        return 0
+    }
+
+    private func navigateBy(delta: Int) {
+        let count = photos.count
+        if count == 0 { return }
+        var idx = currentIndex() + delta
+        idx = max(0, min(count - 1, idx))
+        let target = photos[idx]
+        selectedPhotos = [target.id]
+        currentPhoto = target
+    }
+
+    private func gridStride() -> Int {
+        let spacing: CGFloat = 8
+        let padding: CGFloat = 32
+        let usable = max(0, viewportWidth - padding + spacing)
+        let perRow = Int(floor(usable / (thumbnailSize + spacing)))
+        return max(1, perRow)
     }
 }
 
