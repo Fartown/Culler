@@ -172,8 +172,18 @@ struct ImportView: View {
     }
 
     private func isImageFile(_ url: URL) -> Bool {
-        let imageExtensions = ["jpg", "jpeg", "png", "heic", "tiff", "tif", "raw", "cr2", "cr3", "nef", "arw", "dng", "orf", "rw2", "mov", "mp4", "m4v"]
-        return imageExtensions.contains(url.pathExtension.lowercased())
+        let ext = url.pathExtension.lowercased()
+        let imageExtensions: Set<String> = ["jpg", "jpeg", "png", "heic", "tiff", "tif", "raw", "cr2", "cr3", "nef", "arw", "dng", "orf", "rw2"]
+        if imageExtensions.contains(ext) { return true }
+        if let type = UTType(filenameExtension: ext) {
+            return type.conforms(to: .movie) || (type.conforms(to: .audiovisualContent) && !type.conforms(to: .audio))
+        }
+        let videoFallback: Set<String> = [
+            "mov", "mp4", "m4v", "avi", "mkv", "webm", "wmv", "flv", "f4v",
+            "mpg", "mpeg", "m2v", "ts", "mts", "m2ts",
+            "3gp", "3g2", "asf", "ogv", "mxf", "vob", "dv"
+        ]
+        return videoFallback.contains(ext)
     }
 
     private func browseFiles() {

@@ -164,12 +164,18 @@ final class Photo {
 }
 
 extension Photo {
+    private static let videoFileExtensions: Set<String> = [
+        "mov", "mp4", "m4v", "avi", "mkv", "webm", "wmv", "flv", "f4v",
+        "mpg", "mpeg", "m2v", "ts", "mts", "m2ts",
+        "3gp", "3g2", "asf", "ogv", "mxf", "vob", "dv"
+    ]
+
     var isVideo: Bool {
         let ext = URL(fileURLWithPath: filePath).pathExtension.lowercased()
         guard !ext.isEmpty else { return false }
         if let type = UTType(filenameExtension: ext) {
-            return type.conforms(to: .movie) || type.conforms(to: .audiovisualContent)
+            return type.conforms(to: .movie) || (type.conforms(to: .audiovisualContent) && !type.conforms(to: .audio))
         }
-        return ["mov", "mp4", "m4v", "avi", "mkv", "webm"].contains(ext)
+        return Self.videoFileExtensions.contains(ext)
     }
 }

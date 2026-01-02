@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import AVFoundation
+import UniformTypeIdentifiers
 
 actor ThumbnailService {
     static let shared = ThumbnailService()
@@ -119,7 +120,14 @@ actor ThumbnailService {
 
     private func isVideoURL(_ url: URL) -> Bool {
         let ext = url.pathExtension.lowercased()
-        return ["mov", "mp4", "m4v", "avi", "mkv", "webm"].contains(ext)
+        if let type = UTType(filenameExtension: ext) {
+            return type.conforms(to: .movie) || (type.conforms(to: .audiovisualContent) && !type.conforms(to: .audio))
+        }
+        return [
+            "mov", "mp4", "m4v", "avi", "mkv", "webm", "wmv", "flv", "f4v",
+            "mpg", "mpeg", "m2v", "ts", "mts", "m2ts",
+            "3gp", "3g2", "asf", "ogv", "mxf", "vob", "dv"
+        ].contains(ext)
     }
 
     private func generateVideoThumbnail(for url: URL, maxPixelSize: CGFloat) async -> Result<NSImage, ImageLoadError> {
