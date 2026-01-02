@@ -166,6 +166,18 @@ struct PhotoThumbnail: View {
                 .frame(width: size, height: size)
                 .clipped()
                 .cornerRadius(4)
+
+            // Video Indicator
+            if photo.isVideo {
+                ZStack {
+                    Color.clear.frame(width: size, height: size)
+                    Image(systemName: "play.circle.fill")
+                        .font(.system(size: size * 0.28, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.35), radius: 6, x: 0, y: 2)
+                        .accessibilityLabel("视频")
+                }
+            }
             
             // Layer 2: Selection Border
             RoundedRectangle(cornerRadius: 4)

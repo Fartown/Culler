@@ -22,7 +22,7 @@ struct ImportView: View {
         case copy = "Copy to Library"
     }
 
-    let supportedTypes: [UTType] = [.jpeg, .png, .heic, .tiff, .rawImage]
+    let supportedTypes: [UTType] = [.jpeg, .png, .heic, .tiff, .rawImage, .movie]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -172,7 +172,7 @@ struct ImportView: View {
     }
 
     private func isImageFile(_ url: URL) -> Bool {
-        let imageExtensions = ["jpg", "jpeg", "png", "heic", "tiff", "tif", "raw", "cr2", "cr3", "nef", "arw", "dng", "orf", "rw2"]
+        let imageExtensions = ["jpg", "jpeg", "png", "heic", "tiff", "tif", "raw", "cr2", "cr3", "nef", "arw", "dng", "orf", "rw2", "mov", "mp4", "m4v"]
         return imageExtensions.contains(url.pathExtension.lowercased())
     }
 

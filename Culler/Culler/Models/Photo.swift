@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 import AppKit
+import UniformTypeIdentifiers
 
 enum Flag: Int, Codable, CaseIterable {
     case none = 0
@@ -159,5 +160,16 @@ final class Photo {
 
         self.width = properties[kCGImagePropertyPixelWidth] as? Int
         self.height = properties[kCGImagePropertyPixelHeight] as? Int
+    }
+}
+
+extension Photo {
+    var isVideo: Bool {
+        let ext = URL(fileURLWithPath: filePath).pathExtension.lowercased()
+        guard !ext.isEmpty else { return false }
+        if let type = UTType(filenameExtension: ext) {
+            return type.conforms(to: .movie) || type.conforms(to: .audiovisualContent)
+        }
+        return ["mov", "mp4", "m4v", "avi", "mkv", "webm"].contains(ext)
     }
 }

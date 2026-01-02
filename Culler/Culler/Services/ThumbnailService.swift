@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import AVFoundation
 
 actor ThumbnailService {
     static let shared = ThumbnailService()
@@ -73,6 +74,10 @@ actor ThumbnailService {
     }
 
     private func generateThumbnail(for url: URL, size: CGFloat) async -> Result<NSImage, ImageLoadError> {
+        if isVideoURL(url) {
+            return await generateVideoThumbnail(for: url, maxPixelSize: size * 2)
+        }
+
         let options: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageIfAbsent: true,
             kCGImageSourceCreateThumbnailWithTransform: true,
@@ -91,6 +96,10 @@ actor ThumbnailService {
     }
 
     private func generateLargeImage(for url: URL, maxPixelSize: CGFloat) async -> Result<NSImage, ImageLoadError> {
+        if isVideoURL(url) {
+            return await generateVideoThumbnail(for: url, maxPixelSize: maxPixelSize)
+        }
+
         let options: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceCreateThumbnailWithTransform: true,
@@ -106,6 +115,26 @@ actor ThumbnailService {
         }
 
         return .success(NSImage(cgImage: cgImage, size: NSSize(width: CGFloat(cgImage.width), height: CGFloat(cgImage.height))))
+    }
+
+    private func isVideoURL(_ url: URL) -> Bool {
+        let ext = url.pathExtension.lowercased()
+        return ["mov", "mp4", "m4v", "avi", "mkv", "webm"].contains(ext)
+    }
+
+    private func generateVideoThumbnail(for url: URL, maxPixelSize: CGFloat) async -> Result<NSImage, ImageLoadError> {
+        let asset = AVAsset(url: url)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = CGSize(width: maxPixelSize, height: maxPixelSize)
+
+        let time = CMTime(seconds: 0, preferredTimescale: 600)
+        do {
+            let cgImage = try generator.copyCGImage(at: time, actualTime: nil)
+            return .success(NSImage(cgImage: cgImage, size: NSSize(width: CGFloat(cgImage.width), height: CGFloat(cgImage.height))))
+        } catch {
+            return .failure(.unsupportedFormat)
+        }
     }
 
     func clearCache() {

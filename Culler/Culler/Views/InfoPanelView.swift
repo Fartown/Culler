@@ -12,10 +12,20 @@ struct InfoPanelView: View {
             VStack(alignment: .leading, spacing: 16) {
                 GeometryReader { proxy in
                     let w = proxy.size.width
-                    AsyncThumbnailView(photo: photo, size: max(w, 200), contentMode: .fit)
-                        .frame(height: 200)
-                        .frame(maxWidth: .infinity)
-                        .cornerRadius(4)
+                    ZStack {
+                        AsyncThumbnailView(photo: photo, size: max(w, 200), contentMode: .fit)
+                            .frame(height: 200)
+                            .frame(maxWidth: .infinity)
+                            .cornerRadius(4)
+
+                        if photo.isVideo {
+                            Image(systemName: "play.circle.fill")
+                                .font(.system(size: 44, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .shadow(color: .black.opacity(0.35), radius: 6, x: 0, y: 2)
+                                .accessibilityLabel("视频")
+                        }
+                    }
                 }
                 .frame(height: 200)
 
