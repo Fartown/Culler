@@ -9,6 +9,7 @@ struct SinglePhotoView: View {
     @State private var scale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
     @State private var image: NSImage?
+    @State private var loadError: ImageLoadError?
     
 
     var currentIndex: Int {
@@ -55,6 +56,25 @@ struct SinglePhotoView: View {
                                 }
                             }
                         }
+                } else if let error = loadError {
+                     VStack(spacing: 12) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 48))
+                            .foregroundColor(.secondary)
+                        Text("Cannot Load Image")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        Text(error.localizedDescription)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        if error == .permissionDenied {
+                            Text("The app may have lost permission to access this file.")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                    }
                 } else {
                     ProgressView()
                 }
@@ -131,15 +151,24 @@ struct SinglePhotoView: View {
     }
 
     private func loadFullImage() {
+        // Reset state
+        self.image = nil
+        self.loadError = nil
+        self.scale = 1.0
+        self.offset = .zero
+
         Task {
             let maxSide = CGFloat(max(photo.width ?? 0, photo.height ?? 0))
             let target = maxSide > 0 ? min(maxSide, 4096) : 4096
-            let nsImage = await ThumbnailService.shared.getDisplayImage(for: photo, maxPixelSize: target)
-            if let nsImage = nsImage {
-                await MainActor.run {
+            let result = await ThumbnailService.shared.getDisplayImage(for: photo, maxPixelSize: target)
+            
+            await MainActor.run {
+                switch result {
+                case .success(let nsImage):
                     self.image = nsImage
-                    self.scale = 1.0
-                    self.offset = .zero
+                case .failure(let error):
+                    self.loadError = error
+                    print("Error loading full image: \(error.localizedDescription)")
                 }
             }
         }

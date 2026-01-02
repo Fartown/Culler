@@ -2,19 +2,28 @@ import SwiftUI
 
 struct InfoPanelView: View {
     let photo: Photo
+    @State private var expandCamera: Bool = true
+    @State private var expandExposure: Bool = true
+    @State private var expandFile: Bool = true
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                AsyncThumbnailView(photo: photo, size: 280)
-                    .frame(height: 200)
-                    .frame(maxWidth: .infinity)
-                    .cornerRadius(4)
+                GeometryReader { proxy in
+                    let w = proxy.size.width
+                    AsyncThumbnailView(photo: photo, size: max(w, 200), contentMode: .fit)
+                        .frame(height: 200)
+                        .frame(maxWidth: .infinity)
+                        .cornerRadius(4)
+                }
+                .frame(height: 200)
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(photo.fileName)
                         .font(.headline)
-                        .lineLimit(2)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
                     if let dateTaken = photo.dateTaken {
                         InfoRow(label: "Date Taken", value: dateTaken.formatted())
@@ -22,14 +31,11 @@ struct InfoPanelView: View {
 
                     InfoRow(label: "Date Imported", value: photo.dateImported.formatted())
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 Divider()
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Camera")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-
+                DisclosureGroup(isExpanded: $expandCamera) {
                     if let make = photo.cameraMake {
                         InfoRow(label: "Make", value: make)
                     }
@@ -39,15 +45,15 @@ struct InfoPanelView: View {
                     if let lens = photo.lens {
                         InfoRow(label: "Lens", value: lens)
                     }
+                } label: {
+                    Text("Camera")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                 }
 
                 Divider()
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Exposure")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-
+                DisclosureGroup(isExpanded: $expandExposure) {
                     if let focalLength = photo.focalLength {
                         InfoRow(label: "Focal Length", value: "\(Int(focalLength))mm")
                     }
@@ -60,25 +66,31 @@ struct InfoPanelView: View {
                     if let iso = photo.iso {
                         InfoRow(label: "ISO", value: "\(iso)")
                     }
+                } label: {
+                    Text("Exposure")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                 }
 
                 Divider()
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("File")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-
+                DisclosureGroup(isExpanded: $expandFile) {
                     if let width = photo.width, let height = photo.height {
                         InfoRow(label: "Dimensions", value: "\(width) × \(height)")
                     }
                     InfoRow(label: "Size", value: ByteCountFormatter.string(fromByteCount: photo.fileSize, countStyle: .file))
                     InfoRow(label: "Path", value: photo.filePath)
+                } label: {
+                    Text("File")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                 }
 
                 Spacer()
             }
-            .padding(16)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 16)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Color(NSColor(hex: "#252525")))
     }
@@ -93,9 +105,13 @@ struct InfoRow: View {
             Text(label)
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             Text(value)
                 .font(.system(size: 12))
-                .lineLimit(3)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

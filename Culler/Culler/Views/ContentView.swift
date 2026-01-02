@@ -16,13 +16,20 @@ struct ContentView: View {
     @State private var filterRating: Int = 0
     @State private var filterFlag: Flag? = nil
     @State private var filterColorLabel: ColorLabel? = nil
+    @State private var filterFolder: String? = nil
 
     enum ViewMode {
-        case grid, single, fullscreen
+        case grid, single, fullscreen, folderManagement
     }
 
     var filteredPhotos: [Photo] {
         photos.filter { photo in
+            if let folder = filterFolder {
+                let photoDir = URL(fileURLWithPath: photo.filePath).deletingLastPathComponent().path
+                if photoDir != folder {
+                    return false
+                }
+            }
             if filterRating > 0 && photo.rating < filterRating {
                 return false
             }
@@ -43,7 +50,9 @@ struct ContentView: View {
                 showImportSheet: $showImportSheet,
                 filterRating: $filterRating,
                 filterFlag: $filterFlag,
-                filterColorLabel: $filterColorLabel
+                filterColorLabel: $filterColorLabel,
+                filterFolder: $filterFolder,
+                viewMode: $viewMode
             )
             .frame(minWidth: 180, maxWidth: 300)
 
@@ -88,6 +97,11 @@ struct ContentView: View {
                                 onExit: { viewMode = .single }
                             )
                         }
+                    case .folderManagement:
+                        ImportManagementView(
+                            filterFolder: $filterFolder,
+                            viewMode: $viewMode
+                        )
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -103,7 +117,7 @@ struct ContentView: View {
 
             if viewMode != .fullscreen, let photo = currentPhoto ?? selectedPhotos.first.flatMap({ id in photos.first { $0.id == id } }) {
                 InfoPanelView(photo: photo)
-                    .frame(width: 320)
+                    .frame(minWidth: 220, idealWidth: 320, maxWidth: 450)
                     .layoutPriority(2)
             }
         }

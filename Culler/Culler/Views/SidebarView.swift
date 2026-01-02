@@ -7,6 +7,8 @@ struct SidebarView: View {
     @Binding var filterRating: Int
     @Binding var filterFlag: Flag?
     @Binding var filterColorLabel: ColorLabel?
+    @Binding var filterFolder: String?
+    @Binding var viewMode: ContentView.ViewMode
 
     @State private var showNewAlbumSheet = false
     @State private var newAlbumName = ""
@@ -42,13 +44,28 @@ struct SidebarView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     SidebarSection(title: "Library") {
-                        SidebarItem(icon: "photo.on.rectangle.angled", title: "All Photos", isSelected: filterFlag == nil) {
+                        SidebarItem(icon: "photo.on.rectangle.angled", title: "All Photos", isSelected: filterFlag == nil && filterFolder == nil && viewMode == .grid) {
                             filterFlag = nil
+                            filterFolder = nil
+                            viewMode = .grid
                         }
-                        SidebarItem(icon: "star.fill", title: "Picked", isSelected: filterFlag == .pick) {
+                        SidebarItem(icon: "folder", title: "Folders", isSelected: viewMode == .folderManagement) {
+                            viewMode = .folderManagement
+                            filterFlag = nil
+                            filterFolder = nil
+                        }
+                        SidebarItem(icon: "star.fill", title: "Picked", isSelected: filterFlag == .pick && viewMode != .folderManagement) {
+                            if viewMode == .folderManagement {
+                                viewMode = .grid
+                                filterFolder = nil
+                            }
                             filterFlag = filterFlag == .pick ? nil : .pick
                         }
-                        SidebarItem(icon: "xmark.circle.fill", title: "Rejected", isSelected: filterFlag == .reject) {
+                        SidebarItem(icon: "xmark.circle.fill", title: "Rejected", isSelected: filterFlag == .reject && viewMode != .folderManagement) {
+                            if viewMode == .folderManagement {
+                                viewMode = .grid
+                                filterFolder = nil
+                            }
                             filterFlag = filterFlag == .reject ? nil : .reject
                         }
                     }
@@ -196,19 +213,22 @@ struct SidebarItem: View {
     var action: (() -> Void)? = nil
 
     var body: some View {
-        Button(action: { action?() }) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .frame(width: 16)
-                Text(title)
-                Spacer()
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .background(isSelected ? Color.accentColor.opacity(0.2) : Color.clear)
-            .foregroundColor(isSelected ? .accentColor : .primary)
-            .cornerRadius(4)
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .frame(width: 16)
+            Text(title)
+                .lineLimit(1)
+                .truncationMode(.tail)
+            Spacer()
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 8) // Increased vertical padding
+        .background(isSelected ? Color.accentColor.opacity(0.2) : Color.clear)
+        .foregroundColor(isSelected ? .accentColor : .primary)
+        .cornerRadius(4)
+        .contentShape(Rectangle()) // Make entire area clickable
+        .onTapGesture {
+            action?()
+        }
     }
 }

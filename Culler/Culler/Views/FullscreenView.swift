@@ -7,6 +7,7 @@ struct FullscreenView: View {
     var onExit: () -> Void
 
     @State private var image: NSImage?
+    @State private var loadError: ImageLoadError?
     @State private var showControls = true
 
     var currentIndex: Int {
@@ -106,13 +107,20 @@ struct FullscreenView: View {
     }
 
     private func loadImage() {
+        self.image = nil
+        self.loadError = nil
+        
         Task {
             let maxSide = CGFloat(max(photo.width ?? 0, photo.height ?? 0))
             let target = maxSide > 0 ? min(maxSide, 4096) : 4096
-            let nsImage = await ThumbnailService.shared.getDisplayImage(for: photo, maxPixelSize: target)
-            if let nsImage = nsImage {
-                await MainActor.run {
+            let result = await ThumbnailService.shared.getDisplayImage(for: photo, maxPixelSize: target)
+            
+            await MainActor.run {
+                switch result {
+                case .success(let nsImage):
                     self.image = nsImage
+                case .failure(let error):
+                    self.loadError = error
                 }
             }
         }

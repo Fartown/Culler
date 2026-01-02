@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 
 struct ImportView: View {
     @Binding var isPresented: Bool
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
     @State private var isDragging = false
@@ -13,6 +14,8 @@ struct ImportView: View {
     @State private var importProgress: Double = 0
     @State private var importedCount = 0
     @State private var totalCount = 0
+    @State private var importErrors: [ImportErrorItem] = []
+    @State private var showImportErrorSheet = false
 
     enum ImportMode: String, CaseIterable {
         case reference = "Reference"
@@ -127,6 +130,12 @@ struct ImportView: View {
         }
         .frame(width: 500, height: 450)
         .background(Color(NSColor(hex: "#1f1f1f")))
+        .sheet(isPresented: $showImportErrorSheet) {
+            ImportErrorView(errors: importErrors) {
+                showImportErrorSheet = false
+                isPresented = false
+            }
+        }
     }
 
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
@@ -185,29 +194,48 @@ struct ImportView: View {
         isImporting = true
         totalCount = selectedFiles.count
         importedCount = 0
+        importErrors = []
 
         Task {
             for url in selectedFiles {
                 let finalURL: URL
+                
+                // 1. Handle Copy/Reference Logic
                 if importMode == .copy {
                     do {
                         finalURL = try copyToLibrary(sourceURL: url)
                     } catch {
-                        finalURL = url
+                        let reason = (error as NSError).localizedDescription
+                        importErrors.append(ImportErrorItem(filename: url.lastPathComponent, reason: "Copy failed: \(reason)"))
+                        continue
                     }
                 } else {
                     finalURL = url
                 }
 
+                // 2. Create Security Bookmark (Crucial for Sandboxed Apps)
                 var bookmark: Data? = nil
+                // For both Reference and Copy modes, we might need bookmarks. 
+                // Even for copied files, if they are outside the app's container, we might need them, 
+                // but usually copied files in app support don't need explicit bookmarks if we access them via standard paths.
+                // However, 'Reference' mode ABSOLUTELY needs them.
                 if importMode == .reference {
                     do {
+                        // Start accessing to ensure we have permission to create the bookmark
+                        let accessing = finalURL.startAccessingSecurityScopedResource()
+                        defer { if accessing { finalURL.stopAccessingSecurityScopedResource() } }
+                        
                         bookmark = try finalURL.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
                     } catch {
                         print("Failed to create bookmark for \(finalURL.path): \(error)")
+                        importErrors.append(ImportErrorItem(filename: url.lastPathComponent, reason: "Permission error: Failed to create security bookmark"))
+                        // We continue even if bookmark fails, but the image might not load later.
+                        // Alternatively, we could fail the import here. Let's fail it to be safe.
+                        continue
                     }
                 }
 
+                // 3. Create Model
                 let photo = Photo(filePath: finalURL.path, bookmarkData: bookmark)
                 await MainActor.run {
                     modelContext.insert(photo)
@@ -218,7 +246,11 @@ struct ImportView: View {
 
             await MainActor.run {
                 isImporting = false
-                isPresented = false
+                if !importErrors.isEmpty {
+                    showImportErrorSheet = true
+                } else {
+                    isPresented = false
+                }
             }
         }
     }
@@ -254,6 +286,133 @@ struct ImportView: View {
 
         try fileManager.copyItem(at: sourceURL, to: candidate)
         return candidate
+    }
+}
+
+struct ImportManagementView: View {
+    @Query private var photos: [Photo]
+    @Environment(\.modelContext) private var modelContext
+    @Binding var filterFolder: String?
+    @Binding var viewMode: ContentView.ViewMode
+
+    struct FolderInfo: Identifiable {
+        let id: String // Path
+        let url: URL
+        let count: Int
+        let photos: [Photo]
+    }
+
+    var folders: [FolderInfo] {
+        let grouped = Dictionary(grouping: photos) { photo in
+            // Use the directory of the file as the grouping key
+            URL(fileURLWithPath: photo.filePath).deletingLastPathComponent().path
+        }
+        return grouped.map { path, photos in
+            FolderInfo(
+                id: path,
+                url: URL(fileURLWithPath: path),
+                count: photos.count,
+                photos: photos
+            )
+        }.sorted { $0.id < $1.id }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("Import Management")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                Spacer()
+            }
+            .padding()
+
+            if folders.isEmpty {
+                VStack {
+                    Spacer()
+                    Image(systemName: "folder.badge.questionmark")
+                        .font(.system(size: 48))
+                        .foregroundColor(.secondary)
+                        .padding(.bottom)
+                    Text("No imported folders found")
+                        .font(.title2)
+                        .foregroundColor(.secondary)
+                    Text("Import some photos to see them here.")
+                        .foregroundColor(.secondary)
+                        .padding(.top, 4)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
+            } else {
+                List {
+                    ForEach(folders) { folder in
+                        HStack {
+                            Image(systemName: "folder.fill")
+                                .foregroundColor(.blue)
+                                .font(.title2)
+                            
+                            VStack(alignment: .leading) {
+                                Text(folder.url.lastPathComponent)
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                Text(folder.id)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                            }
+
+                            Spacer()
+
+                            Text("\(folder.count) photos")
+                                .foregroundColor(.secondary)
+                                .padding(.trailing, 8)
+
+                            Menu {
+                                Button(action: {
+                                    filterFolder = folder.id
+                                    viewMode = .grid
+                                }) {
+                                    Label("View Photos", systemImage: "photo")
+                                }
+
+                                Button(action: {
+                                    NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: folder.id)
+                                }) {
+                                    Label("Show in Finder", systemImage: "folder")
+                                }
+
+                                Divider()
+
+                                Button(role: .destructive, action: {
+                                    deleteFolder(folder)
+                                }) {
+                                    Label("Remove from Library", systemImage: "trash")
+                                }
+                            } label: {
+                                Image(systemName: "ellipsis.circle")
+                                    .font(.title2)
+                                    .foregroundColor(.secondary)
+                            }
+                            .menuStyle(.borderlessButton)
+                            .frame(width: 30)
+                        }
+                        .padding(.vertical, 8)
+                    }
+                }
+                .listStyle(.inset)
+            }
+        }
+        .background(Color(NSColor(hex: "#1a1a1a")))
+    }
+
+    private func deleteFolder(_ folder: FolderInfo) {
+        // Confirm deletion? Usually good, but for MVP we just delete.
+        // User can undo if we implemented undo, but we haven't.
+        // Since it's "Remove from Library", it's non-destructive to files.
+        for photo in folder.photos {
+            modelContext.delete(photo)
+        }
     }
 }
 

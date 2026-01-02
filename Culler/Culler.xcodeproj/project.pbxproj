@@ -23,6 +23,8 @@
 		014 /* ThumbnailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114; };
 		015 /* AlbumManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115; };
 		016 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 116; };
+		017 /* AppErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118; };
+		018 /* ImportErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,6 +46,8 @@
 		115 /* AlbumManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumManagementView.swift; sourceTree = "<group>"; };
 		116 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		117 /* Culler.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Culler.entitlements; sourceTree = "<group>"; };
+		118 /* AppErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppErrors.swift; sourceTree = "<group>"; };
+		119 /* ImportErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportErrorView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -93,6 +97,7 @@
 				102 /* Photo.swift */,
 				103 /* Album.swift */,
 				104 /* Tag.swift */,
+				118 /* AppErrors.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -109,6 +114,7 @@
 				111 /* MarkingToolbar.swift */,
 				112 /* InfoPanelView.swift */,
 				113 /* ImportView.swift */,
+				119 /* ImportErrorView.swift */,
 				115 /* AlbumManagementView.swift */,
 			);
 			path = Views;
@@ -213,6 +219,8 @@
 				013 /* ImportView.swift in Sources */,
 				014 /* ThumbnailService.swift in Sources */,
 				015 /* AlbumManagementView.swift in Sources */,
+				017 /* AppErrors.swift in Sources */,
+				018 /* ImportErrorView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

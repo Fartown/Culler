@@ -9,7 +9,7 @@ struct PhotoGridView: View {
     @State private var thumbnailSize: CGFloat = 150
     @State private var hoveredPhoto: UUID?
 
-    private let columns = [GridItem(.adaptive(minimum: 120, maximum: 200), spacing: 8)]
+    private let columns = [GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 8)]
 
     var body: some View {
         ScrollView {
@@ -63,13 +63,18 @@ struct PhotoThumbnail: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
+            // Layer 1: Image
             AsyncThumbnailView(photo: photo, size: size)
+                .frame(width: size, height: size)
+                .clipped()
                 .cornerRadius(4)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 3)
-                )
-
+            
+            // Layer 2: Selection Border
+            RoundedRectangle(cornerRadius: 4)
+                .strokeBorder(isSelected ? Color.accentColor : Color.clear, lineWidth: 3)
+                .frame(width: size, height: size)
+            
+            // Layer 3: Top Left Status Icons
             VStack(alignment: .leading, spacing: 4) {
                 if photo.flag == .pick {
                     Image(systemName: "checkmark.circle.fill")
@@ -94,32 +99,39 @@ struct PhotoThumbnail: View {
                     .cornerRadius(2)
                 }
             }
-            .padding(4)
-
+            .padding(12) // Increased padding
+            
+            // Layer 4: Top Right Color Label
             if photo.colorLabel != .none {
-                Circle()
-                    .fill(Color(photo.colorLabel.color))
-                    .frame(width: 12, height: 12)
-                    .position(x: size - 10, y: 10)
+                ZStack(alignment: .topTrailing) {
+                    Color.clear.frame(width: size, height: size)
+                    Circle()
+                        .fill(Color(photo.colorLabel.color))
+                        .frame(width: 12, height: 12)
+                        .padding(12)
+                }
             }
-
+            
+            // Layer 5: Bottom Right Hover Actions
             if isHovered {
-                HStack {
-                    Spacer()
-                    VStack {
-                        Spacer()
-                        HStack(spacing: 4) {
-                            QuickActionButton(icon: "star.fill") {}
-                            QuickActionButton(icon: "checkmark") {}
-                            QuickActionButton(icon: "xmark") {}
+                ZStack(alignment: .bottomTrailing) {
+                    Color.clear.frame(width: size, height: size)
+                    HStack(spacing: 4) {
+                        QuickActionButton(icon: "star.fill") {
+                            photo.rating = (photo.rating == 5) ? 0 : 5
                         }
-                        .padding(4)
+                        QuickActionButton(icon: "checkmark") {
+                            photo.flag = (photo.flag == .pick) ? .none : .pick
+                        }
+                        QuickActionButton(icon: "xmark") {
+                            photo.flag = (photo.flag == .reject) ? .none : .reject
+                        }
                     }
+                    .padding(12) // Increased padding
                 }
             }
         }
         .frame(width: size, height: size)
-        .clipped()
         .animation(.easeInOut(duration: 0.15), value: isHovered)
     }
 }
@@ -144,17 +156,30 @@ struct QuickActionButton: View {
 struct AsyncThumbnailView: View {
     let photo: Photo
     let size: CGFloat
+    let contentMode: ContentMode
+
+    init(photo: Photo, size: CGFloat, contentMode: ContentMode = .fill) {
+        self.photo = photo
+        self.size = size
+        self.contentMode = contentMode
+    }
 
     @State private var image: NSImage?
+    @State private var hasError: Bool = false
 
     var body: some View {
         Group {
             if let image = image {
                 Image(nsImage: image)
                     .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: size, height: size)
-                    .clipped()
+                    .aspectRatio(contentMode: contentMode)
+            } else if hasError {
+                Rectangle()
+                    .fill(Color(NSColor(hex: "#2a2a2a")))
+                    .overlay(
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundColor(.secondary)
+                    )
             } else {
                 Rectangle()
                     .fill(Color.gray.opacity(0.3))
@@ -171,9 +196,16 @@ struct AsyncThumbnailView: View {
 
     private func loadThumbnail() {
         Task {
-            let thumbnail = await ThumbnailService.shared.getThumbnail(for: photo, size: size)
+            let result = await ThumbnailService.shared.getThumbnail(for: photo, size: size)
             await MainActor.run {
-                self.image = thumbnail
+                switch result {
+                case .success(let thumbnail):
+                    self.image = thumbnail
+                    self.hasError = false
+                case .failure:
+                    self.image = nil
+                    self.hasError = true
+                }
             }
         }
     }
