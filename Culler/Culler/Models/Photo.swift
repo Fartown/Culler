@@ -82,8 +82,11 @@ final class Photo {
             var stale = false
             if let url = try? URL(resolvingBookmarkData: data, options: [.withoutUI, .withSecurityScope], relativeTo: nil, bookmarkDataIsStale: &stale) {
                 if stale {
-                    if let newData = try? url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil) {
-                        bookmarkData = newData
+                    if url.startAccessingSecurityScopedResource() {
+                        if let newData = try? url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil) {
+                            bookmarkData = newData
+                        }
+                        url.stopAccessingSecurityScopedResource()
                     }
                 }
                 return url

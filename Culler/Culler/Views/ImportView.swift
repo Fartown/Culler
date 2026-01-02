@@ -199,7 +199,15 @@ struct ImportView: View {
                     finalURL = url
                 }
 
-                let bookmark: Data? = (importMode == .reference) ? (try? finalURL.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)) : nil
+                var bookmark: Data? = nil
+                if importMode == .reference {
+                    do {
+                        bookmark = try finalURL.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
+                    } catch {
+                        print("Failed to create bookmark for \(finalURL.path): \(error)")
+                    }
+                }
+
                 let photo = Photo(filePath: finalURL.path, bookmarkData: bookmark)
                 await MainActor.run {
                     modelContext.insert(photo)
