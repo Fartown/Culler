@@ -56,17 +56,21 @@ struct SidebarView: View {
                         }
                         SidebarItem(icon: "star.fill", title: "Picked", isSelected: filterFlag == .pick && viewMode != .folderManagement) {
                             if viewMode == .folderManagement {
-                                viewMode = .grid
-                                filterFolder = nil
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { viewMode = .grid }
+                                withAnimation(.none) { filterFolder = nil }
+                            } else if viewMode == .single || viewMode == .fullscreen {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { viewMode = .grid }
                             }
-                            filterFlag = filterFlag == .pick ? nil : .pick
+                            withAnimation(.none) { filterFlag = filterFlag == .pick ? nil : .pick }
                         }
                         SidebarItem(icon: "xmark.circle.fill", title: "Rejected", isSelected: filterFlag == .reject && viewMode != .folderManagement) {
                             if viewMode == .folderManagement {
-                                viewMode = .grid
-                                filterFolder = nil
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { viewMode = .grid }
+                                withAnimation(.none) { filterFolder = nil }
+                            } else if viewMode == .single || viewMode == .fullscreen {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { viewMode = .grid }
                             }
-                            filterFlag = filterFlag == .reject ? nil : .reject
+                            withAnimation(.none) { filterFlag = filterFlag == .reject ? nil : .reject }
                         }
                     }
 

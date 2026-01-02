@@ -11,61 +11,35 @@ struct MarkingToolbar: View {
     }
 
     var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 24) {
-                flagSection
-                Divider().frame(height: 24)
-                ratingSection
-                Divider().frame(height: 24)
-                colorSection
-
-                Spacer(minLength: 12)
-                selectedCount
-            }
-
-            VStack(spacing: 10) {
+        HStack(spacing: 12) {
+            ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 24) {
                     flagSection
                     Divider().frame(height: 24)
                     ratingSection
-                    Spacer(minLength: 12)
-                    selectedCount
-                }
-                HStack {
+                    Divider().frame(height: 24)
                     colorSection
-                    Spacer(minLength: 0)
                 }
+                .padding(.horizontal, 4)
             }
-
-            VStack(spacing: 10) {
-                HStack {
-                    flagSection
-                    Spacer(minLength: 0)
-                }
-                HStack {
-                    ratingSection
-                    Spacer(minLength: 0)
-                }
-                HStack {
-                    colorSection
-                    Spacer(minLength: 0)
-                }
-                HStack {
-                    Spacer(minLength: 0)
-                    selectedCount
-                }
-            }
+            selectedCount
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 20)
-        .padding(.vertical, 12)
+        .padding(.vertical, 10)
         .background(Color(NSColor(hex: "#1f1f1f")))
+        .overlay(
+            Rectangle()
+                .fill(Color(NSColor.separatorColor))
+                .frame(height: 1), alignment: .top
+        )
+        .frame(minHeight: 56)
     }
 
     private var selectedCount: some View {
-        Text("\(selectedPhotos.count) selected")
+        Text("\(selectedPhotos.count >= 100 ? "99+" : String(selectedPhotos.count)) selected")
             .foregroundColor(.secondary)
-            .font(.system(size: 12))
+            .font(.system(size: 13))
             .fixedSize(horizontal: true, vertical: false)
     }
 
@@ -90,10 +64,10 @@ struct MarkingToolbar: View {
     }
 
     private var ratingSection: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
             Text("Rating:")
                 .foregroundColor(.secondary)
-                .font(.system(size: 12))
+                .font(.system(size: 13))
 
             ForEach(1...5, id: \.self) { rating in
                 RatingButton(rating: rating) {
@@ -103,18 +77,18 @@ struct MarkingToolbar: View {
 
             Button(action: { setRating(0) }) {
                 Text("Clear")
-                    .font(.system(size: 11))
+                    .font(.system(size: 12))
                     .foregroundColor(.secondary)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PressableButtonStyle())
         }
     }
 
     private var colorSection: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
             Text("Color:")
                 .foregroundColor(.secondary)
-                .font(.system(size: 12))
+                .font(.system(size: 13))
 
             ForEach(ColorLabel.allCases, id: \.rawValue) { label in
                 if label != .none {
@@ -154,19 +128,18 @@ struct FlagButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 2) {
-                Image(systemName: icon)
-                    .font(.system(size: 20))
-                    .foregroundColor(color)
-                Text(shortcut)
-                    .font(.system(size: 9))
-                    .foregroundColor(.secondary)
+            ToolbarItemView(fixedWidth: 40) {
+                VStack(spacing: 2) {
+                    Image(systemName: icon)
+                        .font(.system(size: 20))
+                        .foregroundColor(color)
+                    Text(shortcut)
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                }
             }
-            .frame(width: 40, height: 40)
-            .background(Color(NSColor(hex: "#2a2a2a")))
-            .cornerRadius(4)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressableButtonStyle())
     }
 }
 
@@ -176,23 +149,23 @@ struct RatingButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 2) {
-                HStack(spacing: 1) {
-                    ForEach(1...rating, id: \.self) { _ in
-                        Image(systemName: "star.fill")
-                            .font(.system(size: 8))
-                            .foregroundColor(.yellow)
+            ToolbarItemView {
+                VStack(spacing: 2) {
+                    HStack(spacing: 1) {
+                        ForEach(1...rating, id: \.self) { _ in
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 8))
+                                .foregroundColor(.yellow)
+                        }
                     }
+                    Text("\(rating)")
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
                 }
-                Text("\(rating)")
-                    .font(.system(size: 9))
-                    .foregroundColor(.secondary)
+                .fixedSize(horizontal: true, vertical: false)
             }
-            .frame(width: 36, height: 36)
-            .background(Color(NSColor(hex: "#2a2a2a")))
-            .cornerRadius(4)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressableButtonStyle())
     }
 }
 
@@ -202,10 +175,42 @@ struct ColorLabelButton: View {
 
     var body: some View {
         Button(action: action) {
-            Circle()
-                .fill(Color(colorLabel.color))
-                .frame(width: 20, height: 20)
+            ToolbarItemView(fixedWidth: 40) {
+                VStack(spacing: 0) {
+                    Circle()
+                        .fill(Color(colorLabel.color))
+                        .frame(width: 16, height: 16)
+                }
+            }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressableButtonStyle())
+    }
+}
+struct PressableButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .animation(.easeOut(duration: 0.18), value: configuration.isPressed)
+    }
+}
+
+struct ToolbarItemView<Content: View>: View {
+    @State private var hovering = false
+    let content: Content
+    let fixedWidth: CGFloat?
+    init(fixedWidth: CGFloat? = nil, @ViewBuilder content: () -> Content) {
+        self.fixedWidth = fixedWidth
+        self.content = content()
+    }
+    var body: some View {
+        content
+            .padding(.horizontal, fixedWidth == nil ? 8 : 0)
+            .frame(width: fixedWidth, height: 40)
+            .background(Color(NSColor(hex: "#2a2a2a")))
+            .cornerRadius(4)
+            .scaleEffect(hovering ? 1.06 : 1)
+            .onHover { h in
+                withAnimation(.easeInOut(duration: 0.15)) { hovering = h }
+            }
     }
 }

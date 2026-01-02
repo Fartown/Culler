@@ -70,16 +70,18 @@ struct ContentView: View {
                             photos: filteredPhotos,
                             selectedPhotos: $selectedPhotos,
                             currentPhoto: $currentPhoto,
-                            onDoubleClick: { viewMode = .single }
+                            onDoubleClick: { withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { viewMode = .single } }
                         )
+                        .transition(.asymmetric(insertion: .opacity, removal: .opacity))
                     case .single:
                         if let photo = currentPhoto {
                             SinglePhotoView(
                                 photo: photo,
                                 photos: filteredPhotos,
                                 currentPhoto: $currentPhoto,
-                                onBack: { viewMode = .grid }
+                                onBack: { withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { viewMode = .grid } }
                             )
+                            .transition(.asymmetric(insertion: .opacity, removal: .opacity))
                         } else {
                             if filteredPhotos.isEmpty {
                                 VStack {
@@ -106,8 +108,9 @@ struct ContentView: View {
                                 photo: photo,
                                 photos: filteredPhotos,
                                 currentPhoto: $currentPhoto,
-                                onExit: { viewMode = .single }
+                                onExit: { withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { viewMode = .single } }
                             )
+                            .transition(.asymmetric(insertion: .opacity, removal: .opacity))
                         } else if filteredPhotos.isEmpty {
                             VStack {
                                 Spacer()
@@ -129,18 +132,14 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .layoutPriority(1)
 
-                MarkingToolbar(
-                    selectedPhotos: selectedPhotos,
-                    photos: photos,
-                    modelContext: modelContext
-                )
+                
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             if viewMode != .fullscreen, let photo = currentPhoto ?? selectedPhotos.first.flatMap({ id in photos.first { $0.id == id } }) {
                 InfoPanelView(photo: photo)
                     .frame(minWidth: 220, idealWidth: 220, maxWidth: 450)
-                    .layoutPriority(2)
+                    .layoutPriority(0)
             }
         }
         .background(Color(NSColor(hex: "#1a1a1a")))
@@ -152,6 +151,10 @@ struct ContentView: View {
                 if let id = selectedPhotos.first, let photo = photos.first(where: { $0.id == id }) {
                     currentPhoto = photo
                 }
+            } else if newValue == .grid {
+                currentPhoto = nil
+                let visibleIds = Set(filteredPhotos.map { $0.id })
+                selectedPhotos = selectedPhotos.intersection(visibleIds)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .importPhotos)) { _ in
@@ -175,6 +178,13 @@ struct ContentView: View {
         }
         .onDisappear {
             KeyboardShortcutManager.shared.stop()
+        }
+        .safeAreaInset(edge: .bottom) {
+            MarkingToolbar(
+                selectedPhotos: selectedPhotos,
+                photos: photos,
+                modelContext: modelContext
+            )
         }
     }
 

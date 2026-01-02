@@ -26,12 +26,12 @@ struct ToolbarView: View {
 
             Text("\(photoCount) photos")
                 .foregroundColor(.secondary)
-                .font(.system(size: 12))
+                .font(.system(size: 13))
 
             if selectedCount > 0 {
                 Text("• \(selectedCount) selected")
                     .foregroundColor(.secondary)
-                    .font(.system(size: 12))
+                    .font(.system(size: 13))
             }
 
             Spacer()
@@ -47,7 +47,7 @@ struct ToolbarView: View {
                         Image(systemName: "arrow.up.arrow.down")
                         Text("Sort")
                     }
-                    .font(.system(size: 12))
+                    .font(.system(size: 13))
                     .foregroundColor(.secondary)
                 }
                 .menuStyle(.borderlessButton)
@@ -67,9 +67,9 @@ struct ToolbarButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 14))
+                .font(.system(size: 16))
                 .foregroundColor(isSelected ? .accentColor : .secondary)
-                .frame(width: 28, height: 28)
+                .frame(width: 32, height: 32)
                 .background(isSelected ? Color.accentColor.opacity(0.2) : Color.clear)
                 .cornerRadius(4)
         }
