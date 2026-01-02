@@ -7,6 +7,10 @@ final class CullerUITests: XCTestCase {
         continueAfterFailure = false
         app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
+        addUIInterruptionMonitor(withDescription: "Handle external interruptions") { _ in
+            self.app.activate()
+            return true
+        }
     }
 
     func testE2E_Screenshots() {
@@ -121,5 +125,26 @@ final class CullerUITests: XCTestCase {
         if colorBlue.waitForExistence(timeout: 2) {
             colorBlue.click()
         }
+    }
+
+    func testE2E_GridScrollMemory() {
+        app.launch()
+
+        app.typeKey("a", modifierFlags: [.command, .shift])
+        for _ in 0..<5 { app.typeKey(.downArrow, modifierFlags: [.shift]) }
+
+        let singleBtn = app.buttons["toolbar_single"]
+        if singleBtn.waitForExistence(timeout: 2) {
+            singleBtn.click()
+        }
+
+        let gridButton = app.buttons["toolbar_grid"]
+        if gridButton.waitForExistence(timeout: 3) {
+            gridButton.click()
+        }
+
+        XCTAssertTrue(app.staticTexts["• 1 selected"].waitForExistence(timeout: 3))
+
+        if singleBtn.waitForExistence(timeout: 2) { singleBtn.click() }
     }
 }

@@ -12,6 +12,7 @@ struct ContentView: View {
     @State private var showImportSheet = false
     @State private var showFilterPanel = true
     @State private var sidebarWidth: CGFloat = 200
+    @State private var gridScrollAnchor: UUID?
 
     @State private var filterRating: Int = 0
     @State private var filterFlag: Flag? = nil
@@ -71,6 +72,7 @@ struct ContentView: View {
                             photos: filteredPhotos,
                             selectedPhotos: $selectedPhotos,
                             currentPhoto: $currentPhoto,
+                            scrollAnchor: gridScrollAnchor,
                             onDoubleClick: { withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { viewMode = .single } }
                         )
                         .transition(.asymmetric(insertion: .opacity, removal: .opacity))
@@ -157,9 +159,19 @@ struct ContentView: View {
                     currentPhoto = photo
                 }
             } else if newValue == .grid {
+                if let anchorId = currentPhoto?.id {
+                    gridScrollAnchor = anchorId
+                    let visibleIds = Set(filteredPhotos.map { $0.id })
+                    if visibleIds.contains(anchorId) {
+                        selectedPhotos = [anchorId]
+                    } else {
+                        selectedPhotos = selectedPhotos.intersection(visibleIds)
+                    }
+                } else {
+                    let visibleIds = Set(filteredPhotos.map { $0.id })
+                    selectedPhotos = selectedPhotos.intersection(visibleIds)
+                }
                 currentPhoto = nil
-                let visibleIds = Set(filteredPhotos.map { $0.id })
-                selectedPhotos = selectedPhotos.intersection(visibleIds)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .importPhotos)) { _ in

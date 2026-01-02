@@ -108,6 +108,16 @@ struct DebugCommands: Commands {
                 NotificationCenter.default.post(name: UITestNotifications.resetDemoData, object: nil)
             }
             .keyboardShortcut("r", modifiers: [.command, .shift])
+
+            Button("Select All Photos") {
+                NotificationCenter.default.post(name: .selectAll, object: nil)
+            }
+            .keyboardShortcut("a", modifiers: [.command, .shift])
+
+            Button("Navigate Down") {
+                NotificationCenter.default.post(name: .navigateDown, object: nil)
+            }
+            .keyboardShortcut(.downArrow, modifiers: [.shift])
         }
     }
 }

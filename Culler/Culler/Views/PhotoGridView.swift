@@ -4,6 +4,7 @@ struct PhotoGridView: View {
     let photos: [Photo]
     @Binding var selectedPhotos: Set<UUID>
     @Binding var currentPhoto: Photo?
+    var scrollAnchor: UUID?
     var onDoubleClick: () -> Void
 
     @State private var thumbnailSize: CGFloat = 150
@@ -25,15 +26,17 @@ struct PhotoGridView: View {
                     Spacer()
                 }
             } else {
-                ScrollView {
-                    LazyVGrid(columns: columns, spacing: 8) {
-                        ForEach(photos) { photo in
-                            PhotoThumbnail(
-                                photo: photo,
-                                isSelected: selectedPhotos.contains(photo.id),
-                                isHovered: hoveredPhoto == photo.id,
-                                size: thumbnailSize
-                            )
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVGrid(columns: columns, spacing: 8) {
+                            ForEach(photos) { photo in
+                                PhotoThumbnail(
+                                    photo: photo,
+                                    isSelected: selectedPhotos.contains(photo.id),
+                                    isHovered: hoveredPhoto == photo.id,
+                                    size: thumbnailSize
+                                )
+                                .id(photo.id)
                             .accessibilityIdentifier("photo_thumbnail")
                             .onTapGesture {
                                 handleSelection(photo: photo, shiftKey: NSEvent.modifierFlags.contains(.shift))
@@ -52,9 +55,24 @@ struct PhotoGridView: View {
                                 : [photo]
                         )
                     }
+                            }
+                        }
+                        .padding(16)
+                    }
+                    .onAppear {
+                        if let anchor = scrollAnchor {
+                            DispatchQueue.main.async {
+                                proxy.scrollTo(anchor, anchor: .center)
+                            }
                         }
                     }
-                    .padding(16)
+                    .onChange(of: scrollAnchor) { _, newValue in
+                        if let anchor = newValue {
+                            DispatchQueue.main.async {
+                                proxy.scrollTo(anchor, anchor: .center)
+                            }
+                        }
+                    }
                 }
             }
         }
