@@ -81,11 +81,23 @@ struct ContentView: View {
                                 onBack: { viewMode = .grid }
                             )
                         } else {
-                            VStack {
-                                Spacer()
-                                Text("Select a photo")
-                                    .foregroundColor(.secondary)
-                                Spacer()
+                            if filteredPhotos.isEmpty {
+                                VStack {
+                                    Spacer()
+                                    Image(systemName: "tray")
+                                        .font(.system(size: 36))
+                                        .foregroundColor(.secondary)
+                                    Text("当前没有内容")
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                }
+                            } else {
+                                VStack {
+                                    Spacer()
+                                    Text("Select a photo")
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                }
                             }
                         }
                     case .fullscreen:
@@ -96,6 +108,16 @@ struct ContentView: View {
                                 currentPhoto: $currentPhoto,
                                 onExit: { viewMode = .single }
                             )
+                        } else if filteredPhotos.isEmpty {
+                            VStack {
+                                Spacer()
+                                Image(systemName: "tray")
+                                    .font(.system(size: 36))
+                                    .foregroundColor(.secondary)
+                                Text("当前没有内容")
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                            }
                         }
                     case .folderManagement:
                         ImportManagementView(

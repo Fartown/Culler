@@ -5,6 +5,7 @@ struct InfoPanelView: View {
     @State private var expandCamera: Bool = true
     @State private var expandExposure: Bool = true
     @State private var expandFile: Bool = true
+    @State private var expandMarking: Bool = true
 
     var body: some View {
         ScrollView {
@@ -32,6 +33,21 @@ struct InfoPanelView: View {
                     InfoRow(label: "Date Imported", value: photo.dateImported.formatted())
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+
+                Divider()
+
+                DisclosureGroup(isExpanded: $expandMarking) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        InfoRow(label: "Flag", value: flagText)
+                        InfoRow(label: "Rating", value: ratingText)
+                        InfoRow(label: "Color Label", value: photo.colorLabel.name)
+                        InfoRow(label: "Tags", value: tagsText)
+                    }
+                } label: {
+                    Text("Marking")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
 
                 Divider()
 
@@ -93,6 +109,30 @@ struct InfoPanelView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Color(NSColor(hex: "#252525")))
+    }
+}
+
+extension InfoPanelView {
+    private var flagText: String {
+        switch photo.flag {
+        case .pick: return "Pick"
+        case .reject: return "Reject"
+        case .none: return "None"
+        }
+    }
+
+    private var ratingText: String {
+        let r = max(0, min(photo.rating, 5))
+        let filled = String(repeating: "★", count: r)
+        let empty = String(repeating: "☆", count: 5 - r)
+        return "\(filled)\(empty) (\(photo.rating))"
+    }
+
+    private var tagsText: String {
+        if let tags = photo.tags, !tags.isEmpty {
+            return tags.map { $0.name }.joined(separator: ", ")
+        }
+        return "None"
     }
 }
 
