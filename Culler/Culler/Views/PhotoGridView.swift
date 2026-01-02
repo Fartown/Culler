@@ -300,23 +300,26 @@ struct AsyncThumbnailView: View {
                     )
             }
         }
-        .onAppear {
-            loadThumbnail()
+        .task(id: photo.id) {
+            await loadThumbnail()
         }
     }
 
-    private func loadThumbnail() {
-        Task {
-            let result = await ThumbnailService.shared.getThumbnail(for: photo, size: size)
-            await MainActor.run {
-                switch result {
-                case .success(let thumbnail):
-                    self.image = thumbnail
-                    self.hasError = false
-                case .failure:
-                    self.image = nil
-                    self.hasError = true
-                }
+    private func loadThumbnail() async {
+        await MainActor.run {
+            image = nil
+            hasError = false
+        }
+
+        let result = await ThumbnailService.shared.getThumbnail(for: photo, size: size)
+        await MainActor.run {
+            switch result {
+            case .success(let thumbnail):
+                image = thumbnail
+                hasError = false
+            case .failure:
+                image = nil
+                hasError = true
             }
         }
     }
