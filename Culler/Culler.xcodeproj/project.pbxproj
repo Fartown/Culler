@@ -23,6 +23,7 @@
 		014 /* ThumbnailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 114; };
 		015 /* AlbumManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115; };
 		016 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 116; };
+		017 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,6 +45,7 @@
 		115 /* AlbumManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumManagementView.swift; sourceTree = "<group>"; };
 		116 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		117 /* Culler.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Culler.entitlements; sourceTree = "<group>"; };
+		118 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -110,6 +112,7 @@
 				112 /* InfoPanelView.swift */,
 				113 /* ImportView.swift */,
 				115 /* AlbumManagementView.swift */,
+				118 /* EmptyStateView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -213,6 +216,7 @@
 				013 /* ImportView.swift in Sources */,
 				014 /* ThumbnailService.swift in Sources */,
 				015 /* AlbumManagementView.swift in Sources */,
+				017 /* EmptyStateView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

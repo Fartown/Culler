@@ -72,11 +72,15 @@ struct ContentView: View {
                                 onBack: { viewMode = .grid }
                             )
                         } else {
-                            VStack {
-                                Spacer()
-                                Text("Select a photo")
-                                    .foregroundColor(.secondary)
-                                Spacer()
+                            if filteredPhotos.isEmpty {
+                                EmptyStateView(systemImage: "tray", title: "当前没有内容")
+                            } else {
+                                VStack {
+                                    Spacer()
+                                    Text("Select a photo")
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                }
                             }
                         }
                     case .fullscreen:
@@ -87,6 +91,8 @@ struct ContentView: View {
                                 currentPhoto: $currentPhoto,
                                 onExit: { viewMode = .single }
                             )
+                        } else if filteredPhotos.isEmpty {
+                            EmptyStateView(systemImage: "tray", title: "当前没有内容")
                         }
                     }
                 }

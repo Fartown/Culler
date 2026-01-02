@@ -191,11 +191,7 @@ struct AlbumDetailView: View {
                     .padding()
                 }
             } else {
-                Spacer()
-                Text("No photos in this album")
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity)
-                Spacer()
+                EmptyStateView(systemImage: "photo.on.rectangle.angled", title: "当前没有内容")
             }
         }
         .background(Color(NSColor(hex: "#1a1a1a")))

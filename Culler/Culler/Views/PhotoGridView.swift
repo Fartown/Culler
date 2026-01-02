@@ -12,31 +12,37 @@ struct PhotoGridView: View {
     private let columns = [GridItem(.adaptive(minimum: 120, maximum: 200), spacing: 8)]
 
     var body: some View {
-        ScrollView {
-            LazyVGrid(columns: columns, spacing: 8) {
-                ForEach(photos) { photo in
-                    PhotoThumbnail(
-                        photo: photo,
-                        isSelected: selectedPhotos.contains(photo.id),
-                        isHovered: hoveredPhoto == photo.id,
-                        size: thumbnailSize
-                    )
-                    .onTapGesture {
-                        handleSelection(photo: photo, shiftKey: NSEvent.modifierFlags.contains(.shift))
+        Group {
+            if photos.isEmpty {
+                EmptyStateView(systemImage: "tray", title: "当前没有内容")
+            } else {
+                ScrollView {
+                    LazyVGrid(columns: columns, spacing: 8) {
+                        ForEach(photos) { photo in
+                            PhotoThumbnail(
+                                photo: photo,
+                                isSelected: selectedPhotos.contains(photo.id),
+                                isHovered: hoveredPhoto == photo.id,
+                                size: thumbnailSize
+                            )
+                            .onTapGesture {
+                                handleSelection(photo: photo, shiftKey: NSEvent.modifierFlags.contains(.shift))
+                            }
+                            .onTapGesture(count: 2) {
+                                currentPhoto = photo
+                                onDoubleClick()
+                            }
+                            .onHover { isHovered in
+                                hoveredPhoto = isHovered ? photo.id : nil
+                            }
+                            .contextMenu {
+                                PhotoContextMenu(photo: photo)
+                            }
+                        }
                     }
-                    .onTapGesture(count: 2) {
-                        currentPhoto = photo
-                        onDoubleClick()
-                    }
-                    .onHover { isHovered in
-                        hoveredPhoto = isHovered ? photo.id : nil
-                    }
-                    .contextMenu {
-                        PhotoContextMenu(photo: photo)
-                    }
+                    .padding(16)
                 }
             }
-            .padding(16)
         }
         .background(Color(NSColor(hex: "#1a1a1a")))
     }
