@@ -38,9 +38,70 @@ struct InfoPanelView: View {
 
                 DisclosureGroup(isExpanded: $expandMarking) {
                     VStack(alignment: .leading, spacing: 8) {
-                        InfoRow(label: "Flag", value: flagText)
-                        InfoRow(label: "Rating", value: ratingText)
-                        InfoRow(label: "Color Label", value: photo.colorLabel.name)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Flag")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            HStack(spacing: 8) {
+                                Image(systemName: flagIconName)
+                                    .font(.system(size: 14))
+                                    .foregroundColor(flagIconColor)
+                                Text(flagText)
+                                    .font(.system(size: 12))
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Rating")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            HStack(spacing: 2) {
+                                ForEach(1...5, id: \.self) { i in
+                                    Image(systemName: i <= displayedRating ? "star.fill" : "star")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(i <= displayedRating ? .yellow : .secondary)
+                                }
+                                Text("(\(photo.rating))")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Color Label")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            HStack(spacing: 8) {
+                                if photo.colorLabel == .none {
+                                    Circle()
+                                        .stroke(Color.gray, lineWidth: 1)
+                                        .frame(width: 12, height: 12)
+                                } else {
+                                    Circle()
+                                        .fill(Color(photo.colorLabel.color))
+                                        .frame(width: 12, height: 12)
+                                }
+                                Text(photo.colorLabel.name)
+                                    .font(.system(size: 12))
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                                Spacer()
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
                         InfoRow(label: "Tags", value: tagsText)
                     }
                 } label: {
@@ -112,19 +173,38 @@ struct InfoPanelView: View {
 }
 
 extension InfoPanelView {
+    private var displayedRating: Int {
+        max(0, min(photo.rating, 5))
+    }
+
+    private var flagIconName: String {
+        switch photo.flag {
+        case .pick:
+            return "checkmark.circle.fill"
+        case .reject:
+            return "xmark.circle.fill"
+        case .none:
+            return "circle"
+        }
+    }
+
+    private var flagIconColor: Color {
+        switch photo.flag {
+        case .pick:
+            return .green
+        case .reject:
+            return .red
+        case .none:
+            return .secondary
+        }
+    }
+
     private var flagText: String {
         switch photo.flag {
         case .pick: return "Pick"
         case .reject: return "Reject"
         case .none: return "None"
         }
-    }
-
-    private var ratingText: String {
-        let r = max(0, min(photo.rating, 5))
-        let filled = String(repeating: "★", count: r)
-        let empty = String(repeating: "☆", count: 5 - r)
-        return "\(filled)\(empty) (\(photo.rating))"
     }
 
     private var tagsText: String {
