@@ -20,16 +20,12 @@
                ReferencedContainer = "container:Culler.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
-      </BuildActionEntries>
-   </BuildAction>
-   <TestAction
-      buildConfiguration = "Debug"
-      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
-      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      shouldUseLaunchSchemeArgsEnv = "YES">
-      <Testables>
-         <TestableReference
-            skipped = "NO">
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "410"
@@ -37,9 +33,42 @@
                BlueprintName = "CullerUITests"
                ReferencedContainer = "container:Culler.xcodeproj">
             </BuildableReference>
-         </TestableReference>
-      </Testables>
-   </TestAction>
+         </BuildActionEntry>
+      </BuildActionEntries>
+   </BuildAction>
+  <TestAction
+     buildConfiguration = "Debug"
+     selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+     selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+     shouldUseLaunchSchemeArgsEnv = "YES">
+     <Testables>
+        <TestableReference
+           skipped = "NO">
+           <BuildableReference
+              BuildableIdentifier = "primary"
+              BlueprintIdentifier = "410"
+              BuildableName = "CullerUITests.xctest"
+              BlueprintName = "CullerUITests"
+              ReferencedContainer = "container:Culler.xcodeproj">
+           </BuildableReference>
+        </TestableReference>
+     </Testables>
+     <MacroExpansion>
+        <BuildableReference
+           BuildableIdentifier = "primary"
+           BlueprintIdentifier = "400"
+           BuildableName = "Culler.app"
+           BlueprintName = "Culler"
+           ReferencedContainer = "container:Culler.xcodeproj">
+        </BuildableReference>
+     </MacroExpansion>
+     <CommandLineArguments>
+        <CommandLineArgument
+           argument = "-ui-testing"
+           isEnabled = "YES">
+        </CommandLineArgument>
+     </CommandLineArguments>
+  </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
@@ -86,4 +115,3 @@
       revealArchiveInOrganizer = "YES">
    </ArchiveAction>
 </Scheme>
-

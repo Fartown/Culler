@@ -9,11 +9,10 @@ struct CullerApp: App {
             Album.self,
             Tag.self
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: UITestConfig.isEnabled)
+        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {
             let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
-            UITestDataSeeder.seedIfNeeded(into: container.mainContext)
             return container
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
@@ -31,9 +30,7 @@ struct CullerApp: App {
             CommandGroup(replacing: .newItem) {}
             ImportCommands()
             PhotoCommands()
-            if UITestConfig.isEnabled {
-                DebugCommands()
-            }
+            
         }
     }
 }
@@ -96,28 +93,4 @@ extension Notification.Name {
     static let selectAll = Notification.Name("selectAll")
 }
 
-struct DebugCommands: Commands {
-    var body: some Commands {
-        CommandMenu("Debug") {
-            Button("Open Album Manager") {
-                NotificationCenter.default.post(name: UITestNotifications.openAlbumManager, object: nil)
-            }
-            .keyboardShortcut("m", modifiers: [.command, .shift])
-
-            Button("Reset Demo Data") {
-                NotificationCenter.default.post(name: UITestNotifications.resetDemoData, object: nil)
-            }
-            .keyboardShortcut("r", modifiers: [.command, .shift])
-
-            Button("Select All Photos") {
-                NotificationCenter.default.post(name: .selectAll, object: nil)
-            }
-            .keyboardShortcut("a", modifiers: [.command, .shift])
-
-            Button("Navigate Down") {
-                NotificationCenter.default.post(name: .navigateDown, object: nil)
-            }
-            .keyboardShortcut(.downArrow, modifiers: [.shift])
-        }
-    }
-}
+ 

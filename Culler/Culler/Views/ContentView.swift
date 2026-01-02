@@ -18,6 +18,7 @@ struct ContentView: View {
     @State private var filterColorLabel: ColorLabel? = nil
     @State private var filterFolder: String? = nil
     @State private var showAlbumManager = false
+    @State private var includeSubfolders: Bool = false
 
     enum ViewMode {
         case grid, single, fullscreen, folderManagement
@@ -26,9 +27,13 @@ struct ContentView: View {
     var filteredPhotos: [Photo] {
         photos.filter { photo in
             if let folder = filterFolder {
-                let photoDir = URL(fileURLWithPath: photo.filePath).deletingLastPathComponent().path
-                if photoDir != folder {
-                    return false
+                let folderPath = URL(fileURLWithPath: folder).standardizedFileURL.path
+                let photoDir = URL(fileURLWithPath: photo.filePath).deletingLastPathComponent().standardizedFileURL.path
+                if includeSubfolders {
+                    let base = folderPath.hasSuffix("/") ? folderPath : folderPath + "/"
+                    if !(photoDir == folderPath || photoDir.hasPrefix(base)) { return false }
+                } else {
+                    if photoDir != folderPath { return false }
                 }
             }
             if filterRating > 0 && photo.rating < filterRating {
@@ -128,7 +133,8 @@ struct ContentView: View {
                     case .folderManagement:
                         ImportManagementView(
                             filterFolder: $filterFolder,
-                            viewMode: $viewMode
+                            viewMode: $viewMode,
+                            includeSubfolders: $includeSubfolders
                         )
                     }
                 }
@@ -191,19 +197,7 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .selectAll)) { _ in
             selectedPhotos = Set(filteredPhotos.map { $0.id })
         }
-        .onReceive(NotificationCenter.default.publisher(for: UITestNotifications.openAlbumManager)) { _ in
-            showAlbumManager = true
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UITestNotifications.resetDemoData)) { _ in
-            UITestDataSeeder.reset(into: modelContext)
-            selectedPhotos = []
-            currentPhoto = nil
-            viewMode = .grid
-            filterRating = 0
-            filterFlag = nil
-            filterColorLabel = nil
-            filterFolder = nil
-        }
+        
         .onAppear {
             KeyboardShortcutManager.shared.start()
         }

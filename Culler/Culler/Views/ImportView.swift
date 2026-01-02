@@ -294,6 +294,7 @@ struct ImportManagementView: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var filterFolder: String?
     @Binding var viewMode: ContentView.ViewMode
+    @Binding var includeSubfolders: Bool
 
     struct FolderInfo: Identifiable {
         let id: String // Path
@@ -324,6 +325,9 @@ struct ImportManagementView: View {
                     .font(.largeTitle)
                     .fontWeight(.bold)
                 Spacer()
+                Toggle("包含子文件夹", isOn: $includeSubfolders)
+                    .toggleStyle(.switch)
+                    .accessibilityIdentifier("include_subfolders_toggle")
             }
             .padding()
 
@@ -344,63 +348,20 @@ struct ImportManagementView: View {
                 }
                 .frame(maxWidth: .infinity)
             } else {
-                List {
-                    ForEach(folders) { folder in
-                        HStack {
-                            Image(systemName: "folder.fill")
-                                .foregroundColor(.blue)
-                                .font(.title2)
-                            
-                            VStack(alignment: .leading) {
-                                Text(folder.url.lastPathComponent)
-                                    .font(.headline)
-                                    .foregroundColor(.primary)
-                                Text(folder.id)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
-                            }
-
-                            Spacer()
-
-                            Text("\(folder.count) photos")
-                                .foregroundColor(.secondary)
-                                .padding(.trailing, 8)
-
-                            Menu {
-                                Button(action: {
-                                    filterFolder = folder.id
-                                    viewMode = .grid
-                                }) {
-                                    Label("View Photos", systemImage: "photo")
-                                }
-
-                                Button(action: {
-                                    NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: folder.id)
-                                }) {
-                                    Label("Show in Finder", systemImage: "folder")
-                                }
-
-                                Divider()
-
-                                Button(role: .destructive, action: {
-                                    deleteFolder(folder)
-                                }) {
-                                    Label("Remove from Library", systemImage: "trash")
-                                }
-                            } label: {
-                                Image(systemName: "ellipsis.circle")
-                                    .font(.title2)
-                                    .foregroundColor(.secondary)
-                            }
-                            .menuStyle(.borderlessButton)
-                            .frame(width: 30)
-                        }
-                        .padding(.vertical, 8)
+                let nodes = FolderNode.buildTree(from: photos)
+                FoldersTreeView(
+                    nodes: nodes,
+                    onSelect: { node in
+                        filterFolder = node.fullPath
+                        viewMode = .grid
+                    },
+                    onRevealInFinder: { node in
+                        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: node.fullPath)
+                    },
+                    onDeleteRecursively: { node in
+                        deleteNode(node)
                     }
-                }
-                .listStyle(.inset)
+                )
             }
         }
         .background(Color(NSColor(hex: "#1a1a1a")))
@@ -413,6 +374,11 @@ struct ImportManagementView: View {
         for photo in folder.photos {
             modelContext.delete(photo)
         }
+    }
+
+    private func deleteNode(_ node: FolderNode) {
+        for p in node.photos { modelContext.delete(p) }
+        for child in node.children ?? [] { deleteNode(child) }
     }
 }
 
