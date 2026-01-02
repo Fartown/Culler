@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 struct PhotoGridView: View {
     let photos: [Photo]
@@ -324,6 +325,9 @@ struct AsyncThumbnailView: View {
 struct PhotoContextMenu: View {
     @Environment(\.modelContext) private var modelContext
     let targets: [Photo]
+    
+    private let rawExtensions = ["raw", "cr2", "cr3", "nef", "arw", "dng", "orf", "rw2"]
+    private let jpgExtensions = ["jpg", "jpeg"]
 
     var body: some View {
         Group {
@@ -364,7 +368,13 @@ struct PhotoContextMenu: View {
             Button(role: .destructive) {
                 targets.forEach { deleteFromDisk($0) }
             } label: {
-                Text("从磁盘删除")
+                Text("从磁盘删除（仅当前文件）")
+            }
+
+            Button(role: .destructive) {
+                deleteFromDiskWithRawJpgPair(targets)
+            } label: {
+                Text("从磁盘删除（RAW+JPG）")
             }
 
             if let single = targets.first, targets.count == 1 {
@@ -389,5 +399,79 @@ struct PhotoContextMenu: View {
             try? FileManager.default.removeItem(at: url)
         }
         modelContext.delete(photo)
+    }
+    
+    private func deleteFromDiskWithRawJpgPair(_ photos: [Photo]) {
+        let knownPhotosByPath: [String: Photo] = {
+            var map: [String: Photo] = [:]
+            for photo in photos {
+                map[photo.filePath] = photo
+                map[photo.fileURL.path] = photo
+            }
+            return map
+        }()
+
+        var candidatePaths = Set<String>()
+        for photo in photos {
+            candidatePaths.formUnion(pairedPaths(for: photo))
+        }
+
+        var deletedPhotoIDs = Set<UUID>()
+        for path in candidatePaths {
+            let matchedPhoto = knownPhotosByPath[path] ?? fetchPhotoByPath(path)
+            let deleteTargetURL = matchedPhoto?.fileURL ?? URL(fileURLWithPath: path)
+            deleteFileFromDisk(url: deleteTargetURL, bookmarkData: matchedPhoto?.bookmarkData)
+
+            if let matchedPhoto, !deletedPhotoIDs.contains(matchedPhoto.id) {
+                deletedPhotoIDs.insert(matchedPhoto.id)
+                modelContext.delete(matchedPhoto)
+            }
+        }
+    }
+    
+    private func pairedPaths(for photo: Photo) -> Set<String> {
+        let url = photo.fileURL
+        let baseURL = url.deletingPathExtension()
+        let ext = url.pathExtension.lowercased()
+
+        var paths = Set<String>()
+        paths.insert(url.path)
+
+        if rawExtensions.contains(ext) {
+            for jpgExt in jpgExtensions {
+                let jpgURL = baseURL.appendingPathExtension(jpgExt)
+                if FileManager.default.fileExists(atPath: jpgURL.path) {
+                    paths.insert(jpgURL.path)
+                }
+            }
+        } else if jpgExtensions.contains(ext) {
+            for rawExt in rawExtensions {
+                let rawURL = baseURL.appendingPathExtension(rawExt)
+                if FileManager.default.fileExists(atPath: rawURL.path) {
+                    paths.insert(rawURL.path)
+                    break
+                }
+            }
+        }
+
+        return paths
+    }
+    
+    private func fetchPhotoByPath(_ path: String) -> Photo? {
+        let descriptor = FetchDescriptor<Photo>(predicate: #Predicate { $0.filePath == path })
+        return try? modelContext.fetch(descriptor).first
+    }
+    
+    private func deleteFileFromDisk(url: URL, bookmarkData: Data?) {
+        var didStart = false
+        if bookmarkData != nil {
+            didStart = url.startAccessingSecurityScopedResource()
+        }
+        defer {
+            if didStart { url.stopAccessingSecurityScopedResource() }
+        }
+        if FileManager.default.fileExists(atPath: url.path) {
+            try? FileManager.default.removeItem(at: url)
+        }
     }
 }
