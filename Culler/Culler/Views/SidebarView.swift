@@ -57,7 +57,7 @@ struct SidebarView: View {
                                 Text(node.name)
                                     .lineLimit(1)
                                 Spacer()
-                                Text("\(node.count)")
+                                Text("\(includeSubfolders ? node.count : node.photos.count)")
                                     .foregroundColor(.secondary)
                                     .font(.system(size: 11))
                             }

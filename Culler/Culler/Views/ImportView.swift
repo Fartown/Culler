@@ -449,6 +449,7 @@ struct ImportManagementView: View {
                 let nodes = FolderNode.buildTree(from: photos)
                 FoldersTreeView(
                     nodes: nodes,
+                    includeSubfolders: includeSubfolders,
                     onSelect: { node in
                         filterFolder = node.fullPath
                     },

@@ -41,7 +41,8 @@ struct FolderNode: Identifiable, Hashable {
             for childPath in kids {
                 builtChildren.append(buildNode(childPath))
             }
-            return FolderNode(id: base.id, name: base.name, fullPath: base.fullPath, children: builtChildren.isEmpty ? nil : builtChildren, count: base.count, photos: base.photos, isFile: false, photo: nil)
+            let aggregatedCount = base.count + builtChildren.reduce(0) { $0 + $1.count }
+            return FolderNode(id: base.id, name: base.name, fullPath: base.fullPath, children: builtChildren.isEmpty ? nil : builtChildren, count: aggregatedCount, photos: base.photos, isFile: false, photo: nil)
         }
 
         return roots.map { buildNode($0) }.sorted { $0.name.lowercased() < $1.name.lowercased() }
@@ -83,7 +84,8 @@ struct FolderNode: Identifiable, Hashable {
                 let fileNode = FolderNode(id: p.id.uuidString, name: filename, fullPath: p.filePath, children: nil, count: 0, photos: [], isFile: true, photo: p)
                 builtChildren.append(fileNode)
             }
-            return FolderNode(id: base.id, name: base.name, fullPath: base.fullPath, children: builtChildren.isEmpty ? nil : builtChildren, count: base.count, photos: base.photos, isFile: false, photo: nil)
+            let aggregatedCount = base.count + builtChildren.reduce(0) { $0 + $1.count }
+            return FolderNode(id: base.id, name: base.name, fullPath: base.fullPath, children: builtChildren.isEmpty ? nil : builtChildren, count: aggregatedCount, photos: base.photos, isFile: false, photo: nil)
         }
 
         return roots.map { buildNode($0) }.sorted { $0.name.lowercased() < $1.name.lowercased() }

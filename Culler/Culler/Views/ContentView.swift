@@ -24,7 +24,7 @@ struct ContentView: View {
     @State private var filterFlag: Flag? = nil
     @State private var filterColorLabel: ColorLabel? = nil
     @State private var showAlbumManager = false
-    @State private var includeSubfolders: Bool = false
+    @State private var includeSubfolders: Bool = true
     @AppStorage("sortOption") private var sortOption: SortOption = .dateImported
     @State private var showLeftNav: Bool = true
     @State private var showRightPanel: Bool = true

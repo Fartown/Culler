@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FoldersTreeView: View {
     let nodes: [FolderNode]
+    var includeSubfolders: Bool = false
     var onSelect: (FolderNode) -> Void
     var onRevealInFinder: ((FolderNode) -> Void)?
     var onDeleteRecursively: ((FolderNode) -> Void)?
@@ -30,7 +31,7 @@ struct FoldersTreeView: View {
                                     .font(.system(size: 13, weight: .semibold))
                                     .foregroundColor(.primary)
                                 if !node.isFile {
-                                    Text("\(node.count)")
+                                    Text("\(includeSubfolders ? node.count : node.photos.count)")
                                         .font(.system(size: 11, weight: .medium))
                                         .padding(.horizontal, 6)
                                         .padding(.vertical, 2)
