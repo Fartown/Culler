@@ -28,6 +28,8 @@ struct ContentView: View {
     @AppStorage("sortOption") private var sortOption: SortOption = .dateImported
     @State private var showLeftNav: Bool = true
     @State private var showRightPanel: Bool = true
+    @SceneStorage("leftPanelWidth") private var leftPanelWidth: Double = 220
+    @SceneStorage("rightPanelWidth") private var rightPanelWidth: Double = 280
     @State private var syncFolderPath: String?
     @State private var isSyncingFolder: Bool = false
     @State private var syncProgress: Double = 0
@@ -37,7 +39,7 @@ struct ContentView: View {
     @State private var showSyncMissingAlert: Bool = false
 
     enum ViewMode {
-        case grid, single, fullscreen
+        case grid, single
     }
 
     private var scopedPhotos: [Photo] {
@@ -109,6 +111,11 @@ struct ContentView: View {
         selectedPhotos = selectedPhotos.intersection(visibleIds)
         if let currentPhoto, !visibleIds.contains(currentPhoto.id) {
             self.currentPhoto = nil
+            if viewMode == .single {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) {
+                    viewMode = .grid
+                }
+            }
         }
     }
 
@@ -151,35 +158,58 @@ struct ContentView: View {
         }
     }
 
+    private struct LeftWidthKey: PreferenceKey {
+        static var defaultValue: CGFloat = 0
+        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
+    }
+
+    private struct RightWidthKey: PreferenceKey {
+        static var defaultValue: CGFloat = 0
+        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
+    }
+
     @ViewBuilder
     private var sidebarColumn: some View {
-        if showLeftNav {
-            let folderNodes = FolderNode.buildTree(from: photos)
-            SidebarView(
-                albums: albums,
-                folderNodes: folderNodes,
-                showImportSheet: $showImportSheet,
-                baseScope: $baseScope,
-                filterFlag: $filterFlag,
-                filterRating: $filterRating,
-                filterColorLabel: $filterColorLabel,
-                includeSubfolders: $includeSubfolders,
-                showAlbumManager: $showAlbumManager,
-                showLeftNav: $showLeftNav
-            ) { node in
-                NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: node.fullPath)
-            } onDeleteRecursively: { node in
-                deleteNodeRecursively(node)
-            } onDeleteFromDisk: { node in
-                deleteNodeFromDisk(node)
-            } onSyncFolder: { node in
-                startSync(folderPath: node.fullPath)
-            } onClearFilters: {
-                clearFilters()
-            }
-            .frame(minWidth: 180, idealWidth: 220, maxWidth: 360)
-            .layoutPriority(0)
+        let folderNodes = FolderNode.buildTree(from: photos)
+        SidebarView(
+            albums: albums,
+            folderNodes: folderNodes,
+            showImportSheet: $showImportSheet,
+            baseScope: $baseScope,
+            filterFlag: $filterFlag,
+            filterRating: $filterRating,
+            filterColorLabel: $filterColorLabel,
+            includeSubfolders: $includeSubfolders,
+            showAlbumManager: $showAlbumManager,
+            showLeftNav: $showLeftNav
+        ) { node in
+            NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: node.fullPath)
+        } onDeleteRecursively: { node in
+            deleteNodeRecursively(node)
+        } onDeleteFromDisk: { node in
+            deleteNodeFromDisk(node)
+        } onSyncFolder: { node in
+            startSync(folderPath: node.fullPath)
+        } onClearFilters: {
+            clearFilters()
         }
+        .frame(
+            minWidth: showLeftNav ? 180 : 0,
+            idealWidth: showLeftNav ? CGFloat(leftPanelWidth) : 0,
+            maxWidth: showLeftNav ? 360 : 0
+        )
+        .opacity(showLeftNav ? 1 : 0)
+        .allowsHitTesting(showLeftNav)
+        .background(
+            GeometryReader { proxy in
+                Color.clear.preference(key: LeftWidthKey.self, value: proxy.size.width)
+            }
+        )
+        .onPreferenceChange(LeftWidthKey.self) { w in
+            if showLeftNav, w > 0 { leftPanelWidth = Double(w) }
+        }
+        .animation(.easeInOut(duration: 0.25), value: showLeftNav)
+        .layoutPriority(0)
     }
 
     private var mainColumn: some View {
@@ -187,7 +217,7 @@ struct ContentView: View {
             toolbarRow
                 contentArea
                 .safeAreaInset(edge: .bottom) {
-                    if viewMode != .fullscreen, (!selectedPhotos.isEmpty || viewMode != .grid) {
+                    if !selectedPhotos.isEmpty || viewMode != .grid {
                         MarkingToolbar(
                             targetCount: resolveMarkingTargets(preferCurrent: preferCurrentPhotoForMarking).count,
                             onSetFlag: applyFlag,
@@ -203,7 +233,6 @@ struct ContentView: View {
 
     private var toolbarRow: some View {
         ToolbarView(
-            viewMode: $viewMode,
             showLeftNav: $showLeftNav,
             showRightPanel: $showRightPanel,
             scopeTitle: scopeTitle + (currentFolderPath != nil && includeSubfolders ? "（含子文件夹）" : ""),
@@ -231,8 +260,6 @@ struct ContentView: View {
                 .transition(.asymmetric(insertion: .opacity, removal: .opacity))
             case .single:
                 singleViewer
-            case .fullscreen:
-                fullscreenViewer
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -256,48 +283,48 @@ struct ContentView: View {
         }
     }
 
-    @ViewBuilder
-    private var fullscreenViewer: some View {
-        if let photo = currentPhoto {
-            FullscreenView(
-                photo: photo,
-                photos: displayedPhotos,
-                currentPhoto: $currentPhoto,
-                onExit: { withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { viewMode = .single } }
-            )
-            .transition(.asymmetric(insertion: .opacity, removal: .opacity))
-        } else if displayedPhotos.isEmpty {
-            EmptyStateView()
-        }
-    }
+
 
     @ViewBuilder
     private var inspectorColumn: some View {
-        if showRightPanel, viewMode != .fullscreen {
-            let photo = currentPhoto ?? selectedPhotos.first.flatMap({ id in photos.first { $0.id == id } })
-            VStack(spacing: 0) {
-                HStack {
-                    Text("检查器")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Button {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { showRightPanel = false }
-                    } label: { Image(systemName: "chevron.right") }
-                        .buttonStyle(.plain)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 6)
-
-                InspectorView(
-                    photo: photo
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .clipped()
+        let photo = currentPhoto ?? selectedPhotos.first.flatMap({ id in photos.first { $0.id == id } })
+        VStack(spacing: 0) {
+            HStack {
+                Text("检查器")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { showRightPanel = false }
+                } label: { Image(systemName: "chevron.right") }
+                    .buttonStyle(.plain)
             }
-            .frame(minWidth: 240, idealWidth: 280, maxWidth: 450)
-            .layoutPriority(0)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+
+            InspectorView(
+                photo: photo
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .clipped()
         }
+        .frame(
+            minWidth: showRightPanel ? 280 : 0,
+            idealWidth: showRightPanel ? CGFloat(rightPanelWidth) : 0,
+            maxWidth: showRightPanel ? 450 : 0
+        )
+        .opacity(showRightPanel ? 1 : 0)
+        .allowsHitTesting(showRightPanel)
+        .background(
+            GeometryReader { proxy in
+                Color.clear.preference(key: RightWidthKey.self, value: proxy.size.width)
+            }
+        )
+        .onPreferenceChange(RightWidthKey.self) { w in
+            if showRightPanel, w > 0 { rightPanelWidth = Double(w) }
+        }
+        .animation(.easeInOut(duration: 0.25), value: showRightPanel)
+        .layoutPriority(0)
     }
 
     @ViewBuilder
@@ -350,7 +377,7 @@ struct ContentView: View {
         })
 
         view = AnyView(view.onChange(of: viewMode) { _, newValue in
-            if (newValue == .single || newValue == .fullscreen), currentPhoto == nil {
+            if newValue == .single, currentPhoto == nil {
                 if let id = selectedPhotos.first, let photo = photos.first(where: { $0.id == id }) {
                     currentPhoto = photo
                 } else if let first = displayedPhotos.first {
@@ -397,11 +424,7 @@ struct ContentView: View {
             }
         })
 
-        view = AnyView(view.onReceive(NotificationCenter.default.publisher(for: .enterFullscreen)) { _ in
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) {
-                viewMode = .fullscreen
-            }
-        })
+
 
         view = AnyView(view.onReceive(NotificationCenter.default.publisher(for: .setFlag)) { notification in
             if let flag = notification.object as? Flag {

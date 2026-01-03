@@ -107,18 +107,7 @@ struct SinglePhotoView: View {
 
                         Spacer()
 
-                        Button(action: {
-                            NotificationCenter.default.post(name: .enterFullscreen, object: nil)
-                        }) {
-                            Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                .font(.title2)
-                                .foregroundColor(.white)
-                                .padding(8)
-                                .background(Color.black.opacity(0.5))
-                                .clipShape(Circle())
-                        }
-                        .buttonStyle(.plain)
-                        .onTapGesture { }
+
                     }
                     .padding()
 

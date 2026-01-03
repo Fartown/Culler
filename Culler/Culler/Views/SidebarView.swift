@@ -24,32 +24,33 @@ struct SidebarFiltersView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // 旗标
+            // 第一行：旗标 + 评分
             HStack(spacing: 16) {
-                ForEach([Flag.pick, Flag.reject, Flag.none], id: \.self) { flag in
-                    FlagIcon(flag: flag, current: filterFlag) { toggleFlag(flag) }
+                HStack(spacing: 16) {
+                    ForEach([Flag.pick, Flag.reject, Flag.none], id: \.self) { flag in
+                        FlagIcon(flag: flag, current: filterFlag) { toggleFlag(flag) }
+                    }
                 }
-            }
 
-            // 评分
-            HStack(spacing: 2) {
-                ForEach(1...5, id: \.self) { star in
-                    Image(systemName: star <= filterRating ? "star.fill" : "star")
-                        .font(.system(size: 13))
-                        .foregroundColor(star <= filterRating ? .yellow : .secondary.opacity(0.4))
-                        .onTapGesture {
-                            if filterRating == star {
-                                filterRating = 0
-                            } else {
-                                filterRating = star
+                HStack(spacing: 2) {
+                    ForEach(1...5, id: \.self) { star in
+                        Image(systemName: star <= filterRating ? "star.fill" : "star")
+                            .font(.system(size: 13))
+                            .foregroundColor(star <= filterRating ? .yellow : .secondary.opacity(0.4))
+                            .onTapGesture {
+                                if filterRating == star {
+                                    filterRating = 0
+                                } else {
+                                    filterRating = star
+                                }
                             }
-                        }
-                        .frame(width: 20, height: 20)
-                        .contentShape(Rectangle())
+                            .frame(width: 20, height: 20)
+                            .contentShape(Rectangle())
+                    }
                 }
             }
 
-            // 颜色
+            // 第二行：颜色标签
             HStack(spacing: 8) {
                 ForEach(ColorLabel.allCases.filter { $0 != .none }, id: \.rawValue) { label in
                     Circle()
@@ -236,25 +237,19 @@ struct SidebarView: View {
                             baseScope = .album(id: album.id)
                         }
                     }
-
-                    Button(action: { showAlbumManager = true }) {
-                        HStack(spacing: 8) {
+                } header: {
+                    HStack {
+                        Text("相册")
+                            .font(UIStyle.sectionHeaderFont)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Button(action: { showAlbumManager = true }) {
                             Image(systemName: "plus")
                                 .frame(width: 16)
-                            Text("新建/管理相册…")
-                                .font(.system(size: 12))
-                            Spacer()
                         }
+                        .buttonStyle(.plain)
                         .foregroundColor(.secondary)
-                        .padding(.vertical, 4)
-                        .padding(.leading, 4)
                     }
-                    .buttonStyle(.plain)
-                    .listRowBackground(Color.clear)
-                } header: {
-                    Text("相册")
-                        .font(UIStyle.sectionHeaderFont)
-                        .foregroundColor(.secondary)
                 }
 
                 Section {

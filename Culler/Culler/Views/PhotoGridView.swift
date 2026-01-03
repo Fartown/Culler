@@ -74,6 +74,13 @@ struct PhotoGridView: View {
                             }
                         }
                     }
+                    .onChange(of: currentPhoto) { _, newPhoto in
+                        if let photo = newPhoto {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) {
+                                proxy.scrollTo(photo.id, anchor: .center)
+                            }
+                        }
+                    }
                 }
             }
         }

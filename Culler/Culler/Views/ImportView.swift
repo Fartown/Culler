@@ -19,7 +19,6 @@ struct ImportView: View {
     @State private var showImportErrorSheet = false
     @State private var statusText: String?
     @State private var selectedFolderPaths: Set<String> = []
-    @State private var authorizedURLs: [URL] = []
 
     enum ImportMode: String, CaseIterable {
         case reference = "引用（不拷贝）"
@@ -113,8 +112,6 @@ struct ImportView: View {
                     HStack {
                         Button("清空") {
                             selectedFiles = []
-                            selectedFolderPaths = []
-                            authorizedURLs = []
                         }
                         .buttonStyle(.bordered)
 
@@ -173,7 +170,6 @@ struct ImportView: View {
     }
 
     private func addFilesFromURL(_ url: URL) {
-        authorizedURLs.append(url)
         var isDirectory: ObjCBool = false
         FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
 
@@ -281,46 +277,20 @@ struct ImportView: View {
                 if importMode == .reference {
                     do {
                         // Start accessing to ensure we have permission to create the bookmark
-                        var accessURL: URL? = nil
-                        var accessing = false
-                        
-                        if finalURL.startAccessingSecurityScopedResource() {
-                            accessURL = finalURL
-                            accessing = true
-                        } else {
-                            // Try to find a parent authorized URL
-                            let finalPath = finalURL.standardizedFileURL.path
-                            if let parent = authorizedURLs.first(where: { finalPath.hasPrefix($0.standardizedFileURL.path) }) {
-                                if parent.startAccessingSecurityScopedResource() {
-                                    accessURL = parent
-                                    accessing = true
-                                }
-                            }
-                        }
-                        
-                        defer { if accessing { accessURL?.stopAccessingSecurityScopedResource() } }
+                        let accessing = finalURL.startAccessingSecurityScopedResource()
+                        defer { if accessing { finalURL.stopAccessingSecurityScopedResource() } }
                         
                         bookmark = try finalURL.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
                     } catch {
-                        // Check if covered by parent folder
-                        let finalPath = finalURL.standardizedFileURL.path
-                        let isCovered = authorizedURLs.contains { url in
-                            return finalPath.hasPrefix(url.standardizedFileURL.path)
+                        print("Failed to create bookmark for \(finalURL.path): \(error)")
+                        await MainActor.run {
+                            processedCount += 1
+                            importErrors.append(ImportErrorItem(filename: url.lastPathComponent, reason: "Permission error: Failed to create security bookmark"))
+                            importProgress = Double(processedCount) / Double(max(1, totalCount))
                         }
-                        
-                        if isCovered {
-                             // It's expected that we can't create a new security-scoped bookmark for a file 
-                             // that is only accessible via its parent. We proceed with nil bookmark.
-                             bookmark = nil
-                        } else {
-                            print("Failed to create bookmark for \(finalURL.path): \(error)")
-                            await MainActor.run {
-                                processedCount += 1
-                                importErrors.append(ImportErrorItem(filename: url.lastPathComponent, reason: "Permission error: Failed to create security bookmark"))
-                                importProgress = Double(processedCount) / Double(max(1, totalCount))
-                            }
-                            continue
-                        }
+                        // We continue even if bookmark fails, but the image might not load later.
+                        // Alternatively, we could fail the import here. Let's fail it to be safe.
+                        continue
                     }
                 }
 
@@ -354,15 +324,9 @@ struct ImportView: View {
     }
 
     private func upsertImportedFolderBookmarks() {
-        // Use authorizedURLs directly to ensure we have the security scope info
-        // Filter only directories
-        let folderURLs = authorizedURLs.filter { url in
-            var isDir: ObjCBool = false
-            return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) && isDir.boolValue
-        }
-        
-        for folderURL in folderURLs {
-            // We use the stored URL which has the security scope attached
+        let uniquePaths = Array(selectedFolderPaths).sorted { $0.lowercased() < $1.lowercased() }
+        for path in uniquePaths {
+            let folderURL = URL(fileURLWithPath: path)
             let didStart = folderURL.startAccessingSecurityScopedResource()
             defer { if didStart { folderURL.stopAccessingSecurityScopedResource() } }
 

@@ -94,7 +94,7 @@ extension Notification.Name {
     static let navigateUp = Notification.Name("navigateUp")
     static let navigateDown = Notification.Name("navigateDown")
     static let selectAll = Notification.Name("selectAll")
-    static let enterFullscreen = Notification.Name("enterFullscreen")
+
     static let enterFolderBrowser = Notification.Name("enterFolderBrowser")
     static let zoomIn = Notification.Name("zoomIn")
     static let zoomOut = Notification.Name("zoomOut")

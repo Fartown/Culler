@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct ToolbarView: View {
-    @Binding var viewMode: ContentView.ViewMode
     @Binding var showLeftNav: Bool
     @Binding var showRightPanel: Bool
     let scopeTitle: String
@@ -31,20 +30,7 @@ struct ToolbarView: View {
                     .lineLimit(1)
             }
 
-            HStack(spacing: 4) {
-                ToolbarButton(icon: "square.grid.3x3", identifier: "toolbar_grid", isSelected: viewMode == .grid) {
-                    viewMode = .grid
-                }
-                ToolbarButton(icon: "photo", identifier: "toolbar_single", isSelected: viewMode == .single) {
-                    viewMode = .single
-                }
-                ToolbarButton(icon: "arrow.up.left.and.arrow.down.right", identifier: "toolbar_fullscreen", isSelected: viewMode == .fullscreen) {
-                    viewMode = .fullscreen
-                }
-            }
-            .padding(4)
-            .background(Color(NSColor(hex: "#2a2a2a")))
-            .cornerRadius(6)
+
 
             Spacer()
 
@@ -115,22 +101,4 @@ struct ToolbarView: View {
     }
 }
 
-struct ToolbarButton: View {
-    let icon: String
-    let identifier: String
-    let isSelected: Bool
-    let action: () -> Void
 
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundColor(isSelected ? .accentColor : .secondary)
-                .frame(width: 32, height: 32)
-                .background(isSelected ? Color.accentColor.opacity(0.2) : Color.clear)
-                .cornerRadius(4)
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier(identifier)
-    }
-}
