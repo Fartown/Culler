@@ -28,10 +28,10 @@ struct FullscreenView: View {
                     .gesture(
                         MagnificationGesture()
                             .onChanged { value in
-                                scale = max(1.0, min(baseScale * value, 5.0))
+                                scale = max(0.5, min(baseScale * value, 5.0))
                             }
                             .onEnded { value in
-                                baseScale = max(1.0, min(baseScale * value, 5.0))
+                                baseScale = max(0.5, min(baseScale * value, 5.0))
                             }
                     )
             } else {
@@ -106,7 +106,7 @@ struct FullscreenView: View {
             withAnimation { scale = min(scale * 1.2, 5.0) }
         }
         .onReceive(NotificationCenter.default.publisher(for: .zoomOut)) { _ in
-            withAnimation { scale = max(scale / 1.2, 1.0) }
+            withAnimation { scale = max(scale / 1.2, 0.5) }
         }
         .onReceive(NotificationCenter.default.publisher(for: .zoomReset)) { _ in
             withAnimation { scale = 1.0 }

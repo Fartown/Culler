@@ -31,10 +31,10 @@ struct SinglePhotoView: View {
                         .gesture(
                             MagnificationGesture()
                                 .onChanged { value in
-                                    scale = max(1.0, min(baseScale * value, 5.0))
+                                    scale = max(0.5, min(baseScale * value, 5.0))
                                 }
                                 .onEnded { value in
-                                    baseScale = max(1.0, min(baseScale * value, 5.0))
+                                    baseScale = max(0.5, min(baseScale * value, 5.0))
                                     if baseScale == 1.0 { offset = .zero }
                                 }
                         )
@@ -161,7 +161,7 @@ struct SinglePhotoView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .zoomOut)) { _ in
             withAnimation {
-                scale = max(scale / 1.2, 1.0)
+                scale = max(scale / 1.2, 0.5)
                 if scale == 1.0 { offset = .zero }
             }
         }

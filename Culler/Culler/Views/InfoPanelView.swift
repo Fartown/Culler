@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct InfoPanelView: View {
     let photo: Photo
@@ -30,11 +31,16 @@ struct InfoPanelView: View {
                 .frame(height: 200)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(photo.fileName)
-                        .font(.headline)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Button(action: {
+                        NSWorkspace.shared.activateFileViewerSelecting([photo.fileURL])
+                    }) {
+                        Text(photo.fileName)
+                            .font(.headline)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
 
                     if let dateTaken = photo.dateTaken {
                         InfoRow(label: "Date Taken", value: dateTaken.formatted())

@@ -122,6 +122,8 @@ final class KeyboardShortcutManager {
         if let responder = NSApp.keyWindow?.firstResponder {
             if responder is NSTextView || responder is NSTextField { return event }
         }
+        let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        if !mods.contains(.command) { return event }
         let dy = event.scrollingDeltaY != 0 ? event.scrollingDeltaY : event.deltaY
         if dy > 0 {
             NotificationCenter.default.post(name: .zoomIn, object: nil)

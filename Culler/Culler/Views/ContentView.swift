@@ -81,32 +81,36 @@ struct ContentView: View {
                 .layoutPriority(0)
             }
 
-            if viewMode == .folderBrowser {
-                let nodes = FolderNode.buildTreeWithFiles(from: photos)
-                FoldersTreeView(
-                    nodes: nodes,
-                    onSelect: { node in
-                        filterFolder = node.fullPath
-                    },
-                    onRevealInFinder: { node in
-                        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: node.fullPath)
-                    },
-                    onDeleteRecursively: { node in
-                        deleteNodeRecursively(node)
-                    },
-                    onDeleteFromDisk: { node in
-                        deleteNodeFromDisk(node)
-                    },
-                    onImport: {
-                        NotificationCenter.default.post(name: .importPhotos, object: nil)
-                    },
-                    onSyncFolder: { node in
-                        startSync(folderPath: node.fullPath)
-                    }
-                )
-                .frame(minWidth: 220, idealWidth: 280, maxWidth: 400)
-                .layoutPriority(0)
-            }
+            let nodes = FolderNode.buildTreeWithFiles(from: photos)
+            FoldersTreeView(
+                nodes: nodes,
+                onSelect: { node in
+                    filterFolder = node.fullPath
+                },
+                onRevealInFinder: { node in
+                    NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: node.fullPath)
+                },
+                onDeleteRecursively: { node in
+                    deleteNodeRecursively(node)
+                },
+                onDeleteFromDisk: { node in
+                    deleteNodeFromDisk(node)
+                },
+                onImport: {
+                    NotificationCenter.default.post(name: .importPhotos, object: nil)
+                },
+                onSyncFolder: { node in
+                    startSync(folderPath: node.fullPath)
+                }
+            )
+            .frame(
+                minWidth: viewMode == .folderBrowser ? 220 : 0,
+                idealWidth: viewMode == .folderBrowser ? 280 : 0,
+                maxWidth: viewMode == .folderBrowser ? 400 : 0
+            )
+            .opacity(viewMode == .folderBrowser ? 1 : 0)
+            .allowsHitTesting(viewMode == .folderBrowser)
+            .layoutPriority(0)
 
             VStack(spacing: 0) {
                 ToolbarView(
