@@ -35,6 +35,7 @@
 		027 /* SortOption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 129; };
 		028 /* ImportedFolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 131; };
 		029 /* FolderSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 132; };
+		030 /* InspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 133; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -69,6 +70,7 @@
 		129 /* SortOption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SortOption.swift; sourceTree = "<group>"; };
 		131 /* ImportedFolder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportedFolder.swift; sourceTree = "<group>"; };
 		132 /* FolderSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderSyncService.swift; sourceTree = "<group>"; };
+		133 /* InspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -129,27 +131,28 @@
 			path = Models;
 			sourceTree = "<group>";
 		};
-		304 /* Views */ = {
-			isa = PBXGroup;
-			children = (
-				105 /* ContentView.swift */,
-				106 /* SidebarView.swift */,
-				107 /* PhotoGridView.swift */,
-				108 /* SinglePhotoView.swift */,
-				109 /* FullscreenView.swift */,
-				110 /* ToolbarView.swift */,
-				111 /* MarkingToolbar.swift */,
-				112 /* InfoPanelView.swift */,
-				113 /* ImportView.swift */,
-				119 /* ImportErrorView.swift */,
-				115 /* AlbumManagementView.swift */,
-				121 /* EmptyStateView.swift */,
-				126 /* FoldersTreeView.swift */,
-                128 /* FolderPreviewView.swift */,
-			);
-			path = Views;
-			sourceTree = "<group>";
-		};
+			304 /* Views */ = {
+				isa = PBXGroup;
+				children = (
+					105 /* ContentView.swift */,
+					106 /* SidebarView.swift */,
+					107 /* PhotoGridView.swift */,
+					108 /* SinglePhotoView.swift */,
+					109 /* FullscreenView.swift */,
+					110 /* ToolbarView.swift */,
+					111 /* MarkingToolbar.swift */,
+					133 /* InspectorView.swift */,
+					112 /* InfoPanelView.swift */,
+					113 /* ImportView.swift */,
+					119 /* ImportErrorView.swift */,
+					115 /* AlbumManagementView.swift */,
+					121 /* EmptyStateView.swift */,
+					126 /* FoldersTreeView.swift */,
+	                128 /* FolderPreviewView.swift */,
+				);
+				path = Views;
+				sourceTree = "<group>";
+			};
 		305 /* Services */ = {
 			isa = PBXGroup;
 			children = (
@@ -167,14 +170,14 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
-		308 /* Testing */ = {
-			isa = PBXGroup;
-			children = (
-				127 /* UITestSupport.swift */,
-			);
-			path = Testing;
-			sourceTree = "<group>";
-		};
+			308 /* Testing */ = {
+				isa = PBXGroup;
+				children = (
+					127 /* UITestSupport.swift */,
+				);
+				path = Testing;
+				sourceTree = "<group>";
+			};
         
 /* End PBXGroup section */
 
@@ -241,34 +244,35 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		401 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				001 /* CullerApp.swift in Sources */,
-				002 /* Photo.swift in Sources */,
-				003 /* Album.swift in Sources */,
-				004 /* Tag.swift in Sources */,
-				005 /* ContentView.swift in Sources */,
-				006 /* SidebarView.swift in Sources */,
-				007 /* PhotoGridView.swift in Sources */,
-				008 /* SinglePhotoView.swift in Sources */,
-				009 /* FullscreenView.swift in Sources */,
-				010 /* ToolbarView.swift in Sources */,
-				011 /* MarkingToolbar.swift in Sources */,
-				012 /* InfoPanelView.swift in Sources */,
-				013 /* ImportView.swift in Sources */,
-				014 /* ThumbnailService.swift in Sources */,
-				015 /* AlbumManagementView.swift in Sources */,
-				017 /* AppErrors.swift in Sources */,
-				018 /* ImportErrorView.swift in Sources */,
-				019 /* KeyboardShortcutManager.swift in Sources */,
-				020 /* EmptyStateView.swift in Sources */,
+			401 /* Sources */ = {
+				isa = PBXSourcesBuildPhase;
+				buildActionMask = 2147483647;
+				files = (
+					001 /* CullerApp.swift in Sources */,
+					002 /* Photo.swift in Sources */,
+					003 /* Album.swift in Sources */,
+					004 /* Tag.swift in Sources */,
+					005 /* ContentView.swift in Sources */,
+					006 /* SidebarView.swift in Sources */,
+					007 /* PhotoGridView.swift in Sources */,
+					008 /* SinglePhotoView.swift in Sources */,
+					009 /* FullscreenView.swift in Sources */,
+					010 /* ToolbarView.swift in Sources */,
+					011 /* MarkingToolbar.swift in Sources */,
+					030 /* InspectorView.swift in Sources */,
+					012 /* InfoPanelView.swift in Sources */,
+					013 /* ImportView.swift in Sources */,
+					014 /* ThumbnailService.swift in Sources */,
+					015 /* AlbumManagementView.swift in Sources */,
+					017 /* AppErrors.swift in Sources */,
+					018 /* ImportErrorView.swift in Sources */,
+					019 /* KeyboardShortcutManager.swift in Sources */,
+					020 /* EmptyStateView.swift in Sources */,
 				
 				023 /* FolderNode.swift in Sources */,
 				024 /* FoldersTreeView.swift in Sources */,
-				025 /* UITestSupport.swift in Sources */,
-				026 /* FolderPreviewView.swift in Sources */,
+					025 /* UITestSupport.swift in Sources */,
+					026 /* FolderPreviewView.swift in Sources */,
 				027 /* SortOption.swift in Sources */,
 				028 /* ImportedFolder.swift in Sources */,
 				029 /* FolderSyncService.swift in Sources */,

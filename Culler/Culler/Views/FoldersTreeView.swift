@@ -60,16 +60,16 @@ struct FoldersTreeView: View {
                     .onHover { hovering in hoverPath = hovering ? node.fullPath : nil }
                     .contextMenu {
                         if !node.isFile {
-                            Button(action: { onSelect(node) }) { Label("View Photos", systemImage: "photo") }
-                            if let onImport { Button(action: { onImport() }) { Label("Import...", systemImage: "square.and.arrow.down") } }
+                            Button(action: { onSelect(node) }) { Label("查看照片", systemImage: "photo") }
+                            if let onImport { Button(action: { onImport() }) { Label("导入…", systemImage: "square.and.arrow.down") } }
                             if let sync = onSyncFolder { Button(action: { sync(node) }) { Label("同步", systemImage: "arrow.triangle.2.circlepath") } }
-                            if let reveal = onRevealInFinder { Button(action: { reveal(node) }) { Label("Show in Finder", systemImage: "folder") } }
-                            if let remove = onDeleteRecursively { Button(role: .destructive, action: { remove(node) }) { Label("Remove from Library", systemImage: "trash") } }
-                            if let removeDisk = onDeleteFromDisk { Button(role: .destructive, action: { removeDisk(node) }) { Label("Delete from Disk", systemImage: "trash.fill") } }
+                            if let reveal = onRevealInFinder { Button(action: { reveal(node) }) { Label("在 Finder 中显示", systemImage: "folder") } }
+                            if let remove = onDeleteRecursively { Button(role: .destructive, action: { remove(node) }) { Label("从库移除", systemImage: "trash") } }
+                            if let removeDisk = onDeleteFromDisk { Button(role: .destructive, action: { removeDisk(node) }) { Label("从磁盘删除", systemImage: "trash.fill") } }
                         } else {
                             Button(action: {
                                 NSWorkspace.shared.selectFile(node.fullPath, inFileViewerRootedAtPath: URL(fileURLWithPath: node.fullPath).deletingLastPathComponent().path)
-                            }) { Label("Show in Finder", systemImage: "doc") }
+                            }) { Label("在 Finder 中显示", systemImage: "doc") }
                         }
                     }
                     .accessibilityIdentifier("folder_node_\(node.fullPath)")

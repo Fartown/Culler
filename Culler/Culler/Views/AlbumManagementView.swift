@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct AlbumManagementView: View {
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Query private var albums: [Album]
     @Query private var tags: [Tag]
@@ -18,76 +19,101 @@ struct AlbumManagementView: View {
     }
 
     var body: some View {
-        HSplitView {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack {
-                    Text("Albums")
-                        .font(.headline)
-                    Spacer()
-                    Button(action: { showNewAlbumSheet = true }) {
-                        Image(systemName: "plus")
-                    }
-                    .buttonStyle(.plain)
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                Text("管理相册与标签")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Spacer()
+
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .foregroundColor(.secondary)
                 }
-                .padding()
+                .buttonStyle(.plain)
+                .keyboardShortcut(.cancelAction)
+                .accessibilityLabel("关闭")
+            }
+            .padding()
 
-                List(selection: $selectedAlbum) {
-                    ForEach(rootAlbums) { album in
-                        AlbumRow(album: album, level: 0)
-                    }
-                    .onDelete(perform: deleteAlbums)
-                }
+            Divider()
 
-                Divider()
-
-                HStack {
-                    Text("Tags")
-                        .font(.headline)
-                    Spacer()
-                    Button(action: { showNewTagSheet = true }) {
-                        Image(systemName: "plus")
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding()
-
-                ScrollView {
-                    FlowLayout(spacing: 8) {
-                        ForEach(tags) { tag in
-                            TagChip(tag: tag) {
-                                deleteTag(tag)
-                            }
+            HSplitView {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack {
+                        Text("相册")
+                            .font(.headline)
+                        Spacer()
+                        Button(action: { showNewAlbumSheet = true }) {
+                            Image(systemName: "plus")
                         }
+                        .buttonStyle(.plain)
                     }
                     .padding()
-                }
-            }
-            .frame(minWidth: 200, idealWidth: 200, maxWidth: 300)
-            .background(Color(NSColor(hex: "#252525")))
 
-            if let album = selectedAlbum {
-                AlbumDetailView(album: album)
-            } else {
-                Text("Select an album")
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    List(selection: $selectedAlbum) {
+                        ForEach(rootAlbums) { album in
+                            AlbumRow(album: album, level: 0)
+                        }
+                        .onDelete(perform: deleteAlbums)
+                    }
+
+                    Divider()
+
+                    HStack {
+                        Text("标签")
+                            .font(.headline)
+                        Spacer()
+                        Button(action: { showNewTagSheet = true }) {
+                            Image(systemName: "plus")
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding()
+
+                    ScrollView {
+                        FlowLayout(spacing: 8) {
+                            ForEach(tags) { tag in
+                                TagChip(tag: tag) {
+                                    deleteTag(tag)
+                                }
+                            }
+                        }
+                        .padding()
+                    }
+                }
+                .frame(minWidth: 220, idealWidth: 240, maxWidth: 320)
+                .background(Color(NSColor(hex: "#252525")))
+
+                if let album = selectedAlbum {
+                    AlbumDetailView(album: album)
+                } else {
+                    Text("请选择一个相册")
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
         }
         .sheet(isPresented: $showNewAlbumSheet) {
             VStack(spacing: 16) {
-                Text("New Album")
+                Text("新建相册")
                     .font(.headline)
-                TextField("Album Name", text: $newAlbumName)
+                TextField("相册名称", text: $newAlbumName)
                     .textFieldStyle(.roundedBorder)
                 HStack {
-                    Button("Cancel") {
+                    Button("取消") {
                         showNewAlbumSheet = false
                         newAlbumName = ""
                     }
+                    .keyboardShortcut(.cancelAction)
                     Spacer()
-                    Button("Create") {
+                    Button("创建") {
                         createAlbum()
                     }
+                    .keyboardShortcut(.defaultAction)
                     .disabled(newAlbumName.isEmpty)
                 }
             }
@@ -96,13 +122,13 @@ struct AlbumManagementView: View {
         }
         .sheet(isPresented: $showNewTagSheet) {
             VStack(spacing: 16) {
-                Text("New Tag")
+                Text("新建标签")
                     .font(.headline)
-                TextField("Tag Name", text: $newTagName)
+                TextField("标签名称", text: $newTagName)
                     .textFieldStyle(.roundedBorder)
 
                 HStack {
-                    Text("Color:")
+                    Text("颜色：")
                     ColorPicker("", selection: Binding(
                         get: { Color(hex: newTagColor) ?? .blue },
                         set: { newTagColor = $0.hexString }
@@ -110,14 +136,16 @@ struct AlbumManagementView: View {
                 }
 
                 HStack {
-                    Button("Cancel") {
+                    Button("取消") {
                         showNewTagSheet = false
                         newTagName = ""
                     }
+                    .keyboardShortcut(.cancelAction)
                     Spacer()
-                    Button("Create") {
+                    Button("创建") {
                         createTag()
                     }
+                    .keyboardShortcut(.defaultAction)
                     .disabled(newTagName.isEmpty)
                 }
             }
@@ -178,7 +206,7 @@ struct AlbumDetailView: View {
                 Text(album.name)
                     .font(.title2)
                 Spacer()
-                Text("\(album.photos?.count ?? 0) photos")
+                Text("\(album.photos?.count ?? 0) 张")
                     .foregroundColor(.secondary)
             }
             .padding()

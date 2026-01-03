@@ -2,13 +2,10 @@ import SwiftUI
 import SwiftData
 
 struct MarkingToolbar: View {
-    let selectedPhotos: Set<UUID>
-    let photos: [Photo]
-    let modelContext: ModelContext
-
-    var selectedPhotoObjects: [Photo] {
-        photos.filter { selectedPhotos.contains($0.id) }
-    }
+    let targetCount: Int
+    let onSetFlag: (Flag) -> Void
+    let onSetRating: (Int) -> Void
+    let onSetColorLabel: (ColorLabel) -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -24,6 +21,8 @@ struct MarkingToolbar: View {
             }
             selectedCount
         }
+        .opacity(targetCount <= 0 ? 0.6 : 1)
+        .allowsHitTesting(targetCount > 0)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 20)
         .padding(.vertical, 10)
@@ -37,7 +36,8 @@ struct MarkingToolbar: View {
     }
 
     private var selectedCount: some View {
-        Text("\(selectedPhotos.count >= 100 ? "99+" : String(selectedPhotos.count)) selected")
+        let count = targetCount
+        return Text("已选 \(count >= 100 ? "99+" : String(count))")
             .foregroundColor(.secondary)
             .font(.system(size: 13))
             .fixedSize(horizontal: true, vertical: false)
@@ -45,22 +45,22 @@ struct MarkingToolbar: View {
 
     private var flagSection: some View {
         HStack(spacing: 12) {
-            Text("Flag:")
+            Text("旗标：")
                 .foregroundColor(.secondary)
                 .font(.system(size: 12))
 
             FlagButton(flag: .pick, icon: "checkmark.circle.fill", color: .green, shortcut: "P") {
-                setFlag(.pick)
+                onSetFlag(.pick)
             }
             .accessibilityIdentifier("mark_flag_pick")
 
             FlagButton(flag: .reject, icon: "xmark.circle.fill", color: .red, shortcut: "X") {
-                setFlag(.reject)
+                onSetFlag(.reject)
             }
             .accessibilityIdentifier("mark_flag_reject")
 
             FlagButton(flag: .none, icon: "circle", color: .gray, shortcut: "U") {
-                setFlag(.none)
+                onSetFlag(.none)
             }
             .accessibilityIdentifier("mark_flag_none")
         }
@@ -68,23 +68,22 @@ struct MarkingToolbar: View {
 
     private var ratingSection: some View {
         HStack(spacing: 12) {
-            Text("Rating:")
+            Text("评分：")
                 .foregroundColor(.secondary)
                 .font(.system(size: 13))
 
             ForEach(1...5, id: \.self) { rating in
                 RatingButton(rating: rating) {
-                    setRating(rating)
+                    onSetRating(rating)
                 }
                 .accessibilityIdentifier("mark_rating_\(rating)")
             }
 
-            Button(action: { setRating(0) }) {
-                Text("Clear")
+            Button(action: { onSetRating(0) }) {
+                Text("清除")
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
             }
-            .buttonStyle(PressableButtonStyle())
             .buttonStyle(PressableButtonStyle())
             .accessibilityIdentifier("mark_rating_clear")
         }
@@ -92,36 +91,18 @@ struct MarkingToolbar: View {
 
     private var colorSection: some View {
         HStack(spacing: 12) {
-            Text("Color:")
+            Text("颜色：")
                 .foregroundColor(.secondary)
                 .font(.system(size: 13))
 
             ForEach(ColorLabel.allCases, id: \.rawValue) { label in
                 if label != .none {
                     ColorLabelButton(colorLabel: label) {
-                        setColorLabel(label)
+                        onSetColorLabel(label)
                     }
                     .accessibilityIdentifier("mark_color_\(label.rawValue)")
                 }
             }
-        }
-    }
-
-    private func setFlag(_ flag: Flag) {
-        for photo in selectedPhotoObjects {
-            photo.flag = flag
-        }
-    }
-
-    private func setRating(_ rating: Int) {
-        for photo in selectedPhotoObjects {
-            photo.rating = rating
-        }
-    }
-
-    private func setColorLabel(_ label: ColorLabel) {
-        for photo in selectedPhotoObjects {
-            photo.colorLabel = label
         }
     }
 }

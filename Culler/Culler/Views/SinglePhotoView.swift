@@ -66,7 +66,7 @@ struct SinglePhotoView: View {
                         Image(systemName: "exclamationmark.triangle")
                             .font(.system(size: 48))
                             .foregroundColor(.secondary)
-                        Text("Cannot Load Image")
+                        Text("无法加载图片")
                             .font(.headline)
                             .foregroundColor(.secondary)
                         Text(error.localizedDescription)
@@ -74,7 +74,7 @@ struct SinglePhotoView: View {
                             .foregroundColor(.secondary)
                         
                         if error == .permissionDenied {
-                            Text("The app may have lost permission to access this file.")
+                            Text("应用可能已失去该文件的访问权限。")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)

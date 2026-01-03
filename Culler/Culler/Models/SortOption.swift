@@ -10,10 +10,10 @@ enum SortOption: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .dateTaken: return "Date Taken"
-        case .dateImported: return "Date Imported"
-        case .fileName: return "File Name"
-        case .rating: return "Rating"
+        case .dateTaken: return "拍摄时间"
+        case .dateImported: return "导入时间"
+        case .fileName: return "文件名"
+        case .rating: return "评分"
         }
     }
 }
@@ -50,4 +50,3 @@ extension Array where Element == Photo {
         }
     }
 }
-

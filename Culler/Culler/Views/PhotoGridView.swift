@@ -264,6 +264,19 @@ struct QuickActionButton: View {
     }
 }
 
+extension ColorLabel {
+    var sfSymbol: String {
+        switch self {
+        case .none: return "circle"
+        case .red: return "circle.fill"
+        case .yellow: return "circle.fill"
+        case .green: return "circle.fill"
+        case .blue: return "circle.fill"
+        case .purple: return "circle.fill"
+        }
+    }
+}
+
 struct AsyncThumbnailView: View {
     let photo: Photo
     let size: CGFloat
@@ -334,21 +347,21 @@ struct PhotoContextMenu: View {
 
     var body: some View {
         Group {
-            Menu("Flag") {
-                Button("Pick") { targets.forEach { $0.flag = .pick } }
-                Button("Reject") { targets.forEach { $0.flag = .reject } }
-                Button("Unflag") { targets.forEach { $0.flag = .none } }
+            Menu("旗标") {
+                Button("已选") { targets.forEach { $0.flag = .pick } }
+                Button("已拒") { targets.forEach { $0.flag = .reject } }
+                Button("未标记") { targets.forEach { $0.flag = .none } }
             }
 
-            Menu("Rating") {
+            Menu("评分") {
                 ForEach(0...5, id: \.self) { rating in
-                    Button(rating == 0 ? "Clear" : String(repeating: "★", count: rating)) {
+                    Button(rating == 0 ? "清除" : String(repeating: "★", count: rating)) {
                         targets.forEach { $0.rating = rating }
                     }
                 }
             }
 
-            Menu("Color Label") {
+            Menu("颜色标签") {
                 ForEach(ColorLabel.allCases, id: \.rawValue) { label in
                     Button(label.name) {
                         targets.forEach { $0.colorLabel = label }
@@ -358,14 +371,14 @@ struct PhotoContextMenu: View {
 
             Divider()
 
-            Button("取消标记") {
+            Button("清除旗标") {
                 targets.forEach { $0.flag = .none }
             }
 
             Button(role: .destructive) {
                 targets.forEach { modelContext.delete($0) }
             } label: {
-                Text("从导入删除")
+                Text("从库移除")
             }
 
             Button(role: .destructive) {
@@ -382,7 +395,7 @@ struct PhotoContextMenu: View {
 
             if let single = targets.first, targets.count == 1 {
                 Divider()
-                Button("Show in Finder") {
+                Button("在 Finder 中显示") {
                     NSWorkspace.shared.selectFile(single.filePath, inFileViewerRootedAtPath: "")
                 }
             }

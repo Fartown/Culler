@@ -9,8 +9,25 @@ struct InfoPanelView: View {
     @State private var expandMarking: Bool = true
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+        InfoPanelContent(
+            photo: photo,
+            expandCamera: $expandCamera,
+            expandExposure: $expandExposure,
+            expandFile: $expandFile,
+            expandMarking: $expandMarking
+        )
+    }
+}
+
+struct InfoPanelContent: View {
+    let photo: Photo
+    @Binding var expandCamera: Bool
+    @Binding var expandExposure: Bool
+    @Binding var expandFile: Bool
+    @Binding var expandMarking: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
                 GeometryReader { proxy in
                     let w = proxy.size.width
                     ZStack {
@@ -43,10 +60,10 @@ struct InfoPanelView: View {
                     .buttonStyle(.plain)
 
                     if let dateTaken = photo.dateTaken {
-                        InfoRow(label: "Date Taken", value: dateTaken.formatted())
+                        InfoRow(label: "拍摄时间", value: dateTaken.formatted())
                     }
 
-                    InfoRow(label: "Date Imported", value: photo.dateImported.formatted())
+                    InfoRow(label: "导入时间", value: photo.dateImported.formatted())
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -55,7 +72,7 @@ struct InfoPanelView: View {
                 DisclosureGroup(isExpanded: $expandMarking) {
                     VStack(alignment: .leading, spacing: 8) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Flag")
+                            Text("旗标")
                                 .font(.system(size: 11))
                                 .foregroundColor(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -74,7 +91,7 @@ struct InfoPanelView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Rating")
+                            Text("评分")
                                 .font(.system(size: 11))
                                 .foregroundColor(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -94,7 +111,7 @@ struct InfoPanelView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Color Label")
+                            Text("颜色标签")
                                 .font(.system(size: 11))
                                 .foregroundColor(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -118,28 +135,28 @@ struct InfoPanelView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                        InfoRow(label: "Tags", value: tagsText)
-                    }
-                } label: {
-                    Text("Marking")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                    InfoRow(label: "标签", value: tagsText)
                 }
+            } label: {
+                Text("标记")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
 
                 Divider()
 
                 DisclosureGroup(isExpanded: $expandCamera) {
                     if let make = photo.cameraMake {
-                        InfoRow(label: "Make", value: make)
+                        InfoRow(label: "厂商", value: make)
                     }
                     if let model = photo.cameraModel {
-                        InfoRow(label: "Model", value: model)
+                        InfoRow(label: "机身", value: model)
                     }
                     if let lens = photo.lens {
-                        InfoRow(label: "Lens", value: lens)
+                        InfoRow(label: "镜头", value: lens)
                     }
                 } label: {
-                    Text("Camera")
+                    Text("相机")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -148,19 +165,19 @@ struct InfoPanelView: View {
 
                 DisclosureGroup(isExpanded: $expandExposure) {
                     if let focalLength = photo.focalLength {
-                        InfoRow(label: "Focal Length", value: "\(Int(focalLength))mm")
+                        InfoRow(label: "焦距", value: "\(Int(focalLength))mm")
                     }
                     if let aperture = photo.aperture {
-                        InfoRow(label: "Aperture", value: "f/\(String(format: "%.1f", aperture))")
+                        InfoRow(label: "光圈", value: "f/\(String(format: "%.1f", aperture))")
                     }
                     if let shutter = photo.shutterSpeed {
-                        InfoRow(label: "Shutter Speed", value: shutter)
+                        InfoRow(label: "快门", value: shutter)
                     }
                     if let iso = photo.iso {
                         InfoRow(label: "ISO", value: "\(iso)")
                     }
                 } label: {
-                    Text("Exposure")
+                    Text("曝光")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -169,11 +186,11 @@ struct InfoPanelView: View {
 
                 DisclosureGroup(isExpanded: $expandFile) {
                     if let width = photo.width, let height = photo.height {
-                        InfoRow(label: "Dimensions", value: "\(width) × \(height)")
+                        InfoRow(label: "尺寸", value: "\(width) × \(height)")
                     }
-                    InfoRow(label: "Size", value: ByteCountFormatter.string(fromByteCount: photo.fileSize, countStyle: .file))
+                    InfoRow(label: "大小", value: ByteCountFormatter.string(fromByteCount: photo.fileSize, countStyle: .file))
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Path")
+                        Text("路径")
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
                         HStack(spacing: 8) {
@@ -190,22 +207,14 @@ struct InfoPanelView: View {
                             .buttonStyle(.plain)
                         }
                     }
-                } label: {
-                    Text("File")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
+            } label: {
+                Text("文件")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 16)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .background(Color(NSColor(hex: "#252525")))
-        
     }
-}
 
-extension InfoPanelView {
     private var displayedRating: Int {
         max(0, min(photo.rating, 5))
     }
@@ -234,9 +243,9 @@ extension InfoPanelView {
 
     private var flagText: String {
         switch photo.flag {
-        case .pick: return "Pick"
-        case .reject: return "Reject"
-        case .none: return "None"
+        case .pick: return "已选"
+        case .reject: return "已拒"
+        case .none: return "未标记"
         }
     }
 
@@ -244,7 +253,7 @@ extension InfoPanelView {
         if let tags = photo.tags, !tags.isEmpty {
             return tags.map { $0.name }.joined(separator: ", ")
         }
-        return "None"
+        return "无"
     }
 }
 

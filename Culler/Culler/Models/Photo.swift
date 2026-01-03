@@ -30,12 +30,12 @@ enum ColorLabel: Int, Codable, CaseIterable {
 
     var name: String {
         switch self {
-        case .none: return "None"
-        case .red: return "Red"
-        case .yellow: return "Yellow"
-        case .green: return "Green"
-        case .blue: return "Blue"
-        case .purple: return "Purple"
+        case .none: return "无"
+        case .red: return "红"
+        case .yellow: return "黄"
+        case .green: return "绿"
+        case .blue: return "蓝"
+        case .purple: return "紫"
         }
     }
 }

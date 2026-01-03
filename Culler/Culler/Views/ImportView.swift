@@ -21,8 +21,8 @@ struct ImportView: View {
     @State private var selectedFolderPaths: Set<String> = []
 
     enum ImportMode: String, CaseIterable {
-        case reference = "Reference"
-        case copy = "Copy to Library"
+        case reference = "引用（不拷贝）"
+        case copy = "拷贝到图库"
     }
 
     let supportedTypes: [UTType] = [.jpeg, .png, .heic, .tiff, .rawImage, .movie]
@@ -30,7 +30,7 @@ struct ImportView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("Import Photos")
+                Text("导入照片")
                     .font(.title2)
                     .fontWeight(.semibold)
                 Spacer()
@@ -39,6 +39,8 @@ struct ImportView: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
+                .keyboardShortcut(.cancelAction)
+                .accessibilityLabel("关闭")
             }
             .padding()
 
@@ -49,7 +51,7 @@ struct ImportView: View {
                     ProgressView(value: importProgress)
                         .progressViewStyle(.linear)
                     VStack(spacing: 6) {
-                        Text("Importing \(processedCount) of \(totalCount)...")
+                        Text("正在导入 \(processedCount) / \(totalCount)…")
                             .foregroundColor(.secondary)
                         if let statusText {
                             Text(statusText)
@@ -95,11 +97,11 @@ struct ImportView: View {
                     }
                     .frame(maxHeight: 200)
 
-                    Text("\(selectedFiles.count) files selected")
+                    Text("已选择 \(selectedFiles.count) 个文件")
                         .foregroundColor(.secondary)
                         .font(.caption)
 
-                    Picker("Import Mode", selection: $importMode) {
+                    Picker("导入方式", selection: $importMode) {
                         ForEach(ImportMode.allCases, id: \.self) { mode in
                             Text(mode.rawValue).tag(mode)
                         }
@@ -108,12 +110,12 @@ struct ImportView: View {
                     .frame(maxWidth: 300)
 
                     HStack {
-                        Button("Clear") {
+                        Button("清空") {
                             selectedFiles = []
                         }
                         .buttonStyle(.bordered)
 
-                        Button("Add More...") {
+                        Button("继续添加…") {
                             browseFiles()
                         }
                         .buttonStyle(.bordered)
@@ -126,16 +128,18 @@ struct ImportView: View {
 
             HStack {
                 Spacer()
-                Button("Cancel") {
+                Button("取消") {
                     isPresented = false
                 }
                 .buttonStyle(.bordered)
+                .keyboardShortcut(.cancelAction)
 
-                Button("Import") {
+                Button("开始导入") {
                     performImport()
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(selectedFiles.isEmpty || isImporting)
+                .keyboardShortcut(.defaultAction)
             }
             .padding()
         }
@@ -388,7 +392,6 @@ struct ImportManagementView: View {
     @Query private var photos: [Photo]
     @Environment(\.modelContext) private var modelContext
     @Binding var filterFolder: String?
-    @Binding var viewMode: ContentView.ViewMode
     @Binding var includeSubfolders: Bool
 
     struct FolderInfo: Identifiable {
@@ -416,7 +419,7 @@ struct ImportManagementView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Import Management")
+                Text("导入管理")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                 Spacer()
@@ -433,10 +436,10 @@ struct ImportManagementView: View {
                         .font(.system(size: 48))
                         .foregroundColor(.secondary)
                         .padding(.bottom)
-                    Text("No imported folders found")
+                    Text("还没有导入的文件夹")
                         .font(.title2)
                         .foregroundColor(.secondary)
-                    Text("Import some photos to see them here.")
+                    Text("先导入一些照片后，这里会显示来源文件夹。")
                         .foregroundColor(.secondary)
                         .padding(.top, 4)
                     Spacer()
@@ -448,7 +451,6 @@ struct ImportManagementView: View {
                     nodes: nodes,
                     onSelect: { node in
                         filterFolder = node.fullPath
-                        viewMode = .grid
                     },
                     onRevealInFinder: { node in
                         NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: node.fullPath)
@@ -488,18 +490,18 @@ struct DropZoneView: View {
                 .font(.system(size: 48))
                 .foregroundColor(isDragging ? .accentColor : .secondary)
 
-            Text("Drag photos or folders here")
+            Text("将照片或文件夹拖到这里")
                 .font(.headline)
 
-            Text("or")
+            Text("或")
                 .foregroundColor(.secondary)
 
-            Button("Browse Files...") {
+            Button("选择文件…") {
                 onBrowse()
             }
             .buttonStyle(.bordered)
 
-            Text("Supports: JPEG, PNG, HEIC, TIFF, RAW")
+            Text("支持：JPEG、PNG、HEIC、TIFF、RAW、视频")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
