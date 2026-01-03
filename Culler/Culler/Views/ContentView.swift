@@ -161,6 +161,8 @@ struct ContentView: View {
                 showImportSheet: $showImportSheet,
                 baseScope: $baseScope,
                 filterFlag: $filterFlag,
+                filterRating: $filterRating,
+                filterColorLabel: $filterColorLabel,
                 includeSubfolders: $includeSubfolders,
                 showAlbumManager: $showAlbumManager,
                 showLeftNav: $showLeftNav
@@ -172,6 +174,8 @@ struct ContentView: View {
                 deleteNodeFromDisk(node)
             } onSyncFolder: { node in
                 startSync(folderPath: node.fullPath)
+            } onClearFilters: {
+                clearFilters()
             }
             .frame(minWidth: 180, idealWidth: 220, maxWidth: 360)
             .layoutPriority(0)
@@ -286,11 +290,7 @@ struct ContentView: View {
                 .padding(.vertical, 6)
 
                 InspectorView(
-                    photo: photo,
-                    filterFlag: $filterFlag,
-                    filterRating: $filterRating,
-                    filterColorLabel: $filterColorLabel,
-                    onClearFilters: clearFilters
+                    photo: photo
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .clipped()
@@ -385,6 +385,18 @@ struct ContentView: View {
             }
         })
 
+        view = AnyView(view.onReceive(NotificationCenter.default.publisher(for: .toggleLeftPanel)) { _ in
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) {
+                showLeftNav.toggle()
+            }
+        })
+
+        view = AnyView(view.onReceive(NotificationCenter.default.publisher(for: .toggleRightPanel)) { _ in
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) {
+                showRightPanel.toggle()
+            }
+        })
+
         view = AnyView(view.onReceive(NotificationCenter.default.publisher(for: .enterFullscreen)) { _ in
             withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) {
                 viewMode = .fullscreen
@@ -417,6 +429,7 @@ struct ContentView: View {
         view = AnyView(view.onDisappear { KeyboardShortcutManager.shared.stop() })
 
         view = AnyView(view.onAppear {
+            restoreFolderPermissions()
             UITestDataSeeder.seedIfNeeded(into: modelContext)
         })
 
@@ -472,6 +485,14 @@ struct ContentView: View {
         applyColorLabel(.red)
         guard currentPhoto?.colorLabel == .red else { fatalError("E2E: color label not applied") }
 
+        UserDefaults.standard.set(true, forKey: "expandLibrary")
+        UserDefaults.standard.set(false, forKey: "expandAlbums")
+        UserDefaults.standard.set(2, forKey: "inspectorTabIndex")
+        let lib = UserDefaults.standard.bool(forKey: "expandLibrary")
+        let alb = UserDefaults.standard.bool(forKey: "expandAlbums")
+        let tab = UserDefaults.standard.integer(forKey: "inspectorTabIndex")
+        guard lib == true && alb == false && tab == 2 else { fatalError("E2E: preferences not persisted") }
+
         NSApp.terminate(nil)
     }
 
@@ -487,6 +508,24 @@ struct ContentView: View {
             modelContext.delete(p)
         }
         for child in node.children ?? [] { deleteNodeFromDisk(child) }
+    }
+
+    private func restoreFolderPermissions() {
+        for folder in importedFolders {
+            if let data = folder.bookmarkData {
+                var stale = false
+                do {
+                    let url = try URL(resolvingBookmarkData: data, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &stale)
+                    if url.startAccessingSecurityScopedResource() {
+                        print("Restored permission for \(folder.folderPath)")
+                    } else {
+                        print("Failed to restore permission for \(folder.folderPath)")
+                    }
+                } catch {
+                    print("Failed to resolve bookmark for \(folder.folderPath): \(error)")
+                }
+            }
+        }
     }
 
     private func startSync(folderPath: String) {

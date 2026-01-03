@@ -1,12 +1,150 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - Style Definitions
+struct UIStyle {
+    static let spacing8: CGFloat = 8
+    static let spacing12: CGFloat = 12
+    static let listIconSize: CGFloat = 16
+    static let sectionPaddingH: CGFloat = 12
+    static let sectionPaddingV: CGFloat = 12
+    static let sectionHeaderFont: Font = .system(size: 12, weight: .semibold)
+    static let groupHeaderFont: Font = .subheadline
+    static let captionFont: Font = .caption
+    static let dividerColor: Color = Color(NSColor(hex: "#2a2a2a"))
+    static let backgroundSidebar: Color = Color(NSColor(hex: "#252525"))
+    static let backgroundInspector: Color = Color(NSColor(hex: "#252525"))
+}
+
+// MARK: - SidebarFiltersView
+struct SidebarFiltersView: View {
+    @Binding var filterFlag: Flag?
+    @Binding var filterRating: Int
+    @Binding var filterColorLabel: ColorLabel?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // 旗标
+            HStack(spacing: 16) {
+                ForEach([Flag.pick, Flag.reject, Flag.none], id: \.self) { flag in
+                    FlagIcon(flag: flag, current: filterFlag) { toggleFlag(flag) }
+                }
+            }
+
+            // 评分
+            HStack(spacing: 2) {
+                ForEach(1...5, id: \.self) { star in
+                    Image(systemName: star <= filterRating ? "star.fill" : "star")
+                        .font(.system(size: 13))
+                        .foregroundColor(star <= filterRating ? .yellow : .secondary.opacity(0.4))
+                        .onTapGesture {
+                            if filterRating == star {
+                                filterRating = 0
+                            } else {
+                                filterRating = star
+                            }
+                        }
+                        .frame(width: 20, height: 20)
+                        .contentShape(Rectangle())
+                }
+            }
+
+            // 颜色
+            HStack(spacing: 8) {
+                ForEach(ColorLabel.allCases.filter { $0 != .none }, id: \.rawValue) { label in
+                    Circle()
+                        .fill(Color(label.color))
+                        .frame(width: 12, height: 12)
+                        .overlay(
+                            Circle()
+                                .stroke(Color.white, lineWidth: filterColorLabel == label ? 2 : 0)
+                        )
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 1)
+                        .onTapGesture {
+                            if filterColorLabel == label {
+                                filterColorLabel = nil
+                            } else {
+                                filterColorLabel = label
+                            }
+                        }
+                        .scaleEffect(filterColorLabel == label ? 1.2 : 1.0)
+                        .animation(.spring(response: 0.3), value: filterColorLabel)
+                }
+            }
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 8)
+    }
+
+    private func toggleFlag(_ flag: Flag) {
+        if filterFlag == flag {
+            filterFlag = nil
+        } else {
+            filterFlag = flag
+        }
+    }
+}
+
+private struct FlagIcon: View {
+    let flag: Flag
+    let current: Flag?
+    let action: () -> Void
+
+    var iconName: String {
+        switch flag {
+        case .pick: return "checkmark.circle.fill"
+        case .reject: return "xmark.circle.fill"
+        case .none: return "circle"
+        }
+    }
+
+    var activeColor: Color {
+        switch flag {
+        case .pick: return .green
+        case .reject: return .red
+        case .none: return .secondary
+        }
+    }
+    
+    var isSelected: Bool {
+        current == flag
+    }
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: iconName)
+                .font(.system(size: 18))
+                .foregroundColor(isSelected ? activeColor : .secondary.opacity(0.5))
+                .padding(6)
+                .background(isSelected ? activeColor.opacity(0.1) : Color.clear)
+                .clipShape(Circle())
+                .overlay(
+                    Circle()
+                        .stroke(isSelected ? activeColor.opacity(0.3) : Color.clear, lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+        .help(flagName)
+    }
+    
+    var flagName: String {
+        switch flag {
+        case .pick: return "已选"
+        case .reject: return "已拒"
+        case .none: return "未标记"
+        }
+    }
+}
+
+// MARK: - SidebarView
 struct SidebarView: View {
     let albums: [Album]
     let folderNodes: [FolderNode]
     @Binding var showImportSheet: Bool
     @Binding var baseScope: ContentView.BaseScope
     @Binding var filterFlag: Flag?
+    @Binding var filterRating: Int
+    @Binding var filterColorLabel: ColorLabel?
     @Binding var includeSubfolders: Bool
     @Binding var showAlbumManager: Bool
     @Binding var showLeftNav: Bool
@@ -15,6 +153,11 @@ struct SidebarView: View {
     var onDeleteRecursively: (FolderNode) -> Void
     var onDeleteFromDisk: (FolderNode) -> Void
     var onSyncFolder: (FolderNode) -> Void
+    var onClearFilters: () -> Void
+
+    @AppStorage("expandFolders") private var expandFolders: Bool = true
+    @AppStorage("expandAlbums") private var expandAlbums: Bool = false
+    @AppStorage("expandFilters") private var expandFilters: Bool = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -25,43 +168,26 @@ struct SidebarView: View {
                         baseScope = .all
                         filterFlag = nil
                     }
-                    listRow(icon: "checkmark.circle.fill", title: "已选", isSelected: filterFlag == .pick) {
-                        baseScope = .all
-                        filterFlag = (filterFlag == .pick) ? nil : .pick
-                    }
-                    listRow(icon: "xmark.circle.fill", title: "已拒", isSelected: filterFlag == .reject) {
-                        baseScope = .all
-                        filterFlag = (filterFlag == .reject) ? nil : .reject
-                    }
                 }
 
-                Section("文件夹") {
-                    HStack {
-                        Text("包含子文件夹")
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Toggle("", isOn: $includeSubfolders)
-                            .toggleStyle(.switch)
-                            .labelsHidden()
-                    }
-                    .listRowBackground(Color.clear)
-
+                Section {
                     OutlineGroup(folderNodes, children: \.children) { node in
                         Button {
                             baseScope = .folder(path: node.fullPath)
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "folder.fill")
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(.secondary)
                                 Text(node.name)
                                     .lineLimit(1)
+                                    .font(.system(size: 13))
                                 Spacer()
                                 Text("\(includeSubfolders ? node.count : node.photos.count)")
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(.secondary.opacity(0.7))
                                     .font(.system(size: 11))
                             }
                             .contentShape(Rectangle())
+                            .padding(.vertical, 2)
                         }
                         .buttonStyle(.plain)
                         .contextMenu {
@@ -87,12 +213,23 @@ struct SidebarView: View {
                         }
                         .listRowBackground((baseScope == .folder(path: node.fullPath)) ? Color.accentColor.opacity(0.18) : Color.clear)
                     }
+                } header: {
+                    HStack {
+                        Text("文件夹")
+                            .font(UIStyle.sectionHeaderFont)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Toggle("子文件夹", isOn: $includeSubfolders)
+                            .toggleStyle(.switch)
+                            .labelsHidden()
+                            .scaleEffect(0.7)
+                    }
                 }
 
-                Section("相册") {
+                Section {
                     ForEach(albums) { album in
                         listRow(
-                            icon: album.isSmartAlbum ? "gearshape" : "folder",
+                            icon: album.isSmartAlbum ? "gearshape" : "rectangle.stack",
                             title: album.name,
                             isSelected: baseScope == .album(id: album.id)
                         ) {
@@ -102,71 +239,98 @@ struct SidebarView: View {
 
                     Button(action: { showAlbumManager = true }) {
                         HStack(spacing: 8) {
-                            Image(systemName: "slider.horizontal.3")
+                            Image(systemName: "plus")
                                 .frame(width: 16)
-                            Text("管理相册与标签…")
+                            Text("新建/管理相册…")
+                                .font(.system(size: 12))
                             Spacer()
                         }
                         .foregroundColor(.secondary)
+                        .padding(.vertical, 4)
+                        .padding(.leading, 4)
                     }
                     .buttonStyle(.plain)
                     .listRowBackground(Color.clear)
+                } header: {
+                    Text("相册")
+                        .font(UIStyle.sectionHeaderFont)
+                        .foregroundColor(.secondary)
+                }
+
+                Section {
+                    SidebarFiltersView(
+                        filterFlag: $filterFlag,
+                        filterRating: $filterRating,
+                        filterColorLabel: $filterColorLabel
+                    )
+                    .listRowBackground(Color.clear)
+                    .padding(.leading, 4)
+                } header: {
+                    HStack {
+                        Text("筛选")
+                            .font(UIStyle.sectionHeaderFont)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        if filterFlag != nil || filterRating > 0 || filterColorLabel != nil {
+                            Button(action: onClearFilters) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.secondary)
+                                    .font(.system(size: 14))
+                            }
+                            .buttonStyle(.plain)
+                            .help("清除所有筛选")
+                        }
+                    }
                 }
             }
             .listStyle(.sidebar)
             .scrollContentBackground(.hidden)
         }
-        .background(Color(NSColor(hex: "#252525")))
+        .background(UIStyle.backgroundSidebar)
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("CULLER")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.white)
-                Spacer()
-                Button {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { showLeftNav = false }
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 16)
-
+        VStack(spacing: 0) {
+            // Import Button as a prominent action
             Button(action: { showImportSheet = true }) {
                 HStack {
                     Image(systemName: "square.and.arrow.down")
-                    Text("导入")
+                    Text("导入照片")
+                        .fontWeight(.medium)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
-                .background(Color(NSColor(hex: "#007AFF")))
-                .foregroundColor(.white)
-                .cornerRadius(4)
+                .background(Color.accentColor.opacity(0.1))
+                .foregroundColor(.accentColor)
+                .cornerRadius(6)
             }
             .buttonStyle(.plain)
-            .padding(.horizontal, 16)
+            .padding(12)
+            
+            Divider()
+                .padding(.bottom, 0)
         }
     }
 
     private func listRow(icon: String, title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Image(systemName: icon)
+                    .font(.system(size: 14))
                     .frame(width: 16)
+                    .foregroundColor(isSelected ? .accentColor : .secondary)
                 Text(title)
+                    .font(.system(size: 13))
                     .lineLimit(1)
                     .truncationMode(.tail)
                 Spacer()
             }
+            .padding(.vertical, 4)
+            .padding(.horizontal, 4)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .foregroundColor(isSelected ? .accentColor : .primary)
-        .listRowBackground(isSelected ? Color.accentColor.opacity(0.18) : Color.clear)
+        .listRowBackground(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
     }
 }

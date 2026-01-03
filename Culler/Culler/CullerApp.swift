@@ -32,6 +32,7 @@ struct CullerApp: App {
             ImportCommands()
             PhotoCommands()
             FolderCommands()
+            PanelCommands()
             
         }
     }
@@ -98,6 +99,8 @@ extension Notification.Name {
     static let zoomIn = Notification.Name("zoomIn")
     static let zoomOut = Notification.Name("zoomOut")
     static let zoomReset = Notification.Name("zoomReset")
+    static let toggleLeftPanel = Notification.Name("toggleLeftPanel")
+    static let toggleRightPanel = Notification.Name("toggleRightPanel")
 }
 
 struct FolderCommands: Commands {
@@ -107,6 +110,22 @@ struct FolderCommands: Commands {
                 NotificationCenter.default.post(name: .enterFolderBrowser, object: nil)
             }
             .keyboardShortcut("f", modifiers: [.command, .shift])
+        }
+    }
+}
+
+struct PanelCommands: Commands {
+    var body: some Commands {
+        CommandMenu("Panels") {
+            Button("Toggle Left Panel") {
+                NotificationCenter.default.post(name: .toggleLeftPanel, object: nil)
+            }
+            .keyboardShortcut("[", modifiers: [.command, .shift])
+
+            Button("Toggle Right Panel") {
+                NotificationCenter.default.post(name: .toggleRightPanel, object: nil)
+            }
+            .keyboardShortcut("]", modifiers: [.command, .shift])
         }
     }
 }
