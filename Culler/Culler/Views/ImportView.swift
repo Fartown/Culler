@@ -17,6 +17,8 @@ struct ImportView: View {
     @State private var totalCount = 0
     @State private var importErrors: [ImportErrorItem] = []
     @State private var showImportErrorSheet = false
+    @State private var statusText: String?
+    @State private var selectedFolderPaths: Set<String> = []
 
     enum ImportMode: String, CaseIterable {
         case reference = "Reference"
@@ -46,8 +48,16 @@ struct ImportView: View {
                 VStack(spacing: 16) {
                     ProgressView(value: importProgress)
                         .progressViewStyle(.linear)
-                    Text("Importing \(processedCount) of \(totalCount)...")
-                        .foregroundColor(.secondary)
+                    VStack(spacing: 6) {
+                        Text("Importing \(processedCount) of \(totalCount)...")
+                            .foregroundColor(.secondary)
+                        if let statusText {
+                            Text(statusText)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
+                    }
                 }
                 .padding(40)
             } else if selectedFiles.isEmpty {
@@ -160,6 +170,7 @@ struct ImportView: View {
         FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
 
         if isDirectory.boolValue {
+            selectedFolderPaths.insert(url.standardizedFileURL.path)
             if let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: nil) {
                 while let fileURL = enumerator.nextObject() as? URL {
                     if isImageFile(fileURL) && !selectedFiles.contains(fileURL) {
@@ -169,6 +180,7 @@ struct ImportView: View {
             }
         } else if isImageFile(url) && !selectedFiles.contains(url) {
             selectedFiles.append(url)
+            selectedFolderPaths.insert(url.deletingLastPathComponent().standardizedFileURL.path)
         }
     }
 
@@ -208,10 +220,19 @@ struct ImportView: View {
         importedCount = 0
         importErrors = []
         importProgress = 0
+        statusText = nil
 
         Task {
             let existingPaths = await MainActor.run { existingImportedFilePathSet() }
             var seenPaths = existingPaths
+            if importMode == .reference {
+                await MainActor.run {
+                    statusText = "正在保存文件夹权限..."
+                }
+                await MainActor.run {
+                    upsertImportedFolderBookmarks()
+                }
+            }
             for url in selectedFiles {
                 let finalURL: URL
                 
@@ -276,6 +297,7 @@ struct ImportView: View {
                     processedCount += 1
                     importedCount += 1
                     importProgress = Double(processedCount) / Double(max(1, totalCount))
+                    statusText = finalURL.deletingLastPathComponent().lastPathComponent
                 }
             }
 
@@ -295,6 +317,28 @@ struct ImportView: View {
         let desc = FetchDescriptor<Photo>()
         let photos = (try? modelContext.fetch(desc)) ?? []
         return Set(photos.map(\.filePath))
+    }
+
+    private func upsertImportedFolderBookmarks() {
+        let uniquePaths = Array(selectedFolderPaths).sorted { $0.lowercased() < $1.lowercased() }
+        for path in uniquePaths {
+            let folderURL = URL(fileURLWithPath: path)
+            let didStart = folderURL.startAccessingSecurityScopedResource()
+            defer { if didStart { folderURL.stopAccessingSecurityScopedResource() } }
+
+            do {
+                let data = try folderURL.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
+                let standardizedPath = folderURL.standardizedFileURL.path
+                let descriptor = FetchDescriptor<ImportedFolder>(predicate: #Predicate { $0.folderPath == standardizedPath })
+                if let existing = try modelContext.fetch(descriptor).first {
+                    existing.bookmarkData = data
+                } else {
+                    modelContext.insert(ImportedFolder(folderPath: standardizedPath, bookmarkData: data))
+                }
+            } catch {
+                // 忽略：没有权限时，后续同步会提示重新导入/授权
+            }
+        }
     }
 
     private func libraryDirectoryURL() throws -> URL {

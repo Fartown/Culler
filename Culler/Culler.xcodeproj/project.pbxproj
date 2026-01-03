@@ -33,6 +33,8 @@
 		025 /* UITestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 127; };
 		026 /* FolderPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 128; };
 		027 /* SortOption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 129; };
+		028 /* ImportedFolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 131; };
+		029 /* FolderSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 132; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -65,6 +67,8 @@
 		127 /* UITestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestSupport.swift; sourceTree = "<group>"; };
 		128 /* FolderPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderPreviewView.swift; sourceTree = "<group>"; };
 		129 /* SortOption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SortOption.swift; sourceTree = "<group>"; };
+		131 /* ImportedFolder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportedFolder.swift; sourceTree = "<group>"; };
+		132 /* FolderSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderSyncService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -120,6 +124,7 @@
 				104 /* Tag.swift */,
 				118 /* AppErrors.swift */,
 				125 /* FolderNode.swift */,
+				131 /* ImportedFolder.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -150,6 +155,7 @@
 			children = (
 				114 /* ThumbnailService.swift */,
 				120 /* KeyboardShortcutManager.swift */,
+				132 /* FolderSyncService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -264,6 +270,8 @@
 				025 /* UITestSupport.swift in Sources */,
 				026 /* FolderPreviewView.swift in Sources */,
 				027 /* SortOption.swift in Sources */,
+				028 /* ImportedFolder.swift in Sources */,
+				029 /* FolderSyncService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

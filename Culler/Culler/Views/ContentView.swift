@@ -5,6 +5,7 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var photos: [Photo]
     @Query private var albums: [Album]
+    @Query private var importedFolders: [ImportedFolder]
 
     @State private var selectedPhotos: Set<UUID> = []
     @State private var currentPhoto: Photo?
@@ -22,6 +23,13 @@ struct ContentView: View {
     @AppStorage("sortOption") private var sortOption: SortOption = .dateImported
     @State private var showLeftNav: Bool = true
     @State private var showRightPanel: Bool = true
+    @State private var syncFolderPath: String?
+    @State private var isSyncingFolder: Bool = false
+    @State private var syncProgress: Double = 0
+    @State private var syncResultText: String?
+    @State private var syncErrors: [ImportErrorItem] = []
+    @State private var showSyncErrorSheet: Bool = false
+    @State private var showSyncMissingAlert: Bool = false
 
     enum ViewMode {
         case grid, single, fullscreen, folderManagement, folderBrowser
@@ -91,6 +99,9 @@ struct ContentView: View {
                     },
                     onImport: {
                         NotificationCenter.default.post(name: .importPhotos, object: nil)
+                    },
+                    onSyncFolder: { node in
+                        startSync(folderPath: node.fullPath)
                     }
                 )
                 .frame(minWidth: 220, idealWidth: 280, maxWidth: 400)
@@ -241,12 +252,38 @@ struct ContentView: View {
             }
         }
         .background(Color(NSColor(hex: "#1a1a1a")))
+        .overlay(alignment: .top) {
+            if isSyncingFolder, let path = syncFolderPath {
+                VStack(spacing: 8) {
+                    HStack(spacing: 10) {
+                        ProgressView(value: syncProgress)
+                            .progressViewStyle(.linear)
+                            .frame(width: 240)
+                        Text("同步中：\(URL(fileURLWithPath: path).lastPathComponent)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                }
+                .background(.ultraThinMaterial)
+                .cornerRadius(10)
+                .padding(.top, 10)
+                .padding(.horizontal, 12)
+            }
+        }
         .sheet(isPresented: $showImportSheet) {
             ImportView(isPresented: $showImportSheet)
         }
         .sheet(isPresented: $showAlbumManager) {
             AlbumManagementView()
                 .frame(minWidth: 900, minHeight: 600)
+        }
+        .sheet(isPresented: $showSyncErrorSheet) {
+            ImportErrorView(errors: syncErrors) {
+                showSyncErrorSheet = false
+            }
         }
         .onChange(of: viewMode) { _, newValue in
             if (newValue == .single || newValue == .fullscreen), currentPhoto == nil {
@@ -309,6 +346,19 @@ struct ContentView: View {
                 modelContext: modelContext
             )
         }
+        .alert("同步完成", isPresented: Binding(get: { syncResultText != nil }, set: { if !$0 { syncResultText = nil } })) {
+            Button("好的") { syncResultText = nil }
+        } message: {
+            Text(syncResultText ?? "")
+        }
+        .alert("需要重新导入/授权", isPresented: $showSyncMissingAlert) {
+            Button("重新导入") {
+                showImportSheet = true
+            }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("文件夹权限或路径已变更。请重新导入该文件夹后再同步。")
+        }
     }
 
     private func setFlagForSelected(_ flag: Flag) {
@@ -353,6 +403,65 @@ struct ContentView: View {
             modelContext.delete(p)
         }
         for child in node.children ?? [] { deleteNodeFromDisk(child) }
+    }
+
+    private func startSync(folderPath: String) {
+        if isSyncingFolder { return }
+
+        isSyncingFolder = true
+        syncFolderPath = folderPath
+        syncProgress = 0
+        syncErrors = []
+        syncResultText = nil
+
+        Task {
+            do {
+                let summary = try await FolderSyncService.sync(
+                    folderPath: folderPath,
+                    photos: photos,
+                    importedFolders: importedFolders,
+                    modelContext: modelContext,
+                    progress: { value in
+                        Task { @MainActor in
+                            syncProgress = value
+                        }
+                    }
+                )
+
+                await MainActor.run {
+                    isSyncingFolder = false
+                    syncFolderPath = nil
+                    syncProgress = 0
+
+                    if summary.folderMissing {
+                        syncResultText = "文件夹已不存在，已从库中移除对应内容。"
+                    } else {
+                        syncResultText = "新增 \(summary.addedCount) 张，移除 \(summary.removedCount) 张。"
+                    }
+
+                    if !summary.errors.isEmpty {
+                        syncErrors = summary.errors
+                        showSyncErrorSheet = true
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    isSyncingFolder = false
+                    syncFolderPath = nil
+                    syncProgress = 0
+                    if let syncError = error as? FolderSyncError {
+                        switch syncError {
+                        case .permissionDenied:
+                            showSyncMissingAlert = true
+                        case .notDirectory:
+                            syncResultText = syncError.localizedDescription
+                        }
+                    } else {
+                        syncResultText = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                    }
+                }
+            }
+        }
     }
 }
 

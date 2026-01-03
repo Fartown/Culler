@@ -7,6 +7,7 @@ struct FoldersTreeView: View {
     var onDeleteRecursively: ((FolderNode) -> Void)?
     var onDeleteFromDisk: ((FolderNode) -> Void)?
     var onImport: (() -> Void)?
+    var onSyncFolder: ((FolderNode) -> Void)?
 
     @State private var hoverPath: String? = nil
 
@@ -61,6 +62,7 @@ struct FoldersTreeView: View {
                         if !node.isFile {
                             Button(action: { onSelect(node) }) { Label("View Photos", systemImage: "photo") }
                             if let onImport { Button(action: { onImport() }) { Label("Import...", systemImage: "square.and.arrow.down") } }
+                            if let sync = onSyncFolder { Button(action: { sync(node) }) { Label("同步", systemImage: "arrow.triangle.2.circlepath") } }
                             if let reveal = onRevealInFinder { Button(action: { reveal(node) }) { Label("Show in Finder", systemImage: "folder") } }
                             if let remove = onDeleteRecursively { Button(role: .destructive, action: { remove(node) }) { Label("Remove from Library", systemImage: "trash") } }
                             if let removeDisk = onDeleteFromDisk { Button(role: .destructive, action: { removeDisk(node) }) { Label("Delete from Disk", systemImage: "trash.fill") } }

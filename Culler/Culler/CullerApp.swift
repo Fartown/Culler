@@ -7,7 +7,8 @@ struct CullerApp: App {
         let schema = Schema([
             Photo.self,
             Album.self,
-            Tag.self
+            Tag.self,
+            ImportedFolder.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

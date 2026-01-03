@@ -10,11 +10,11 @@ struct ImportErrorView: View {
                 .font(.system(size: 48))
                 .foregroundColor(.yellow)
 
-            Text("Import Completed with Errors")
+            Text("操作完成，但有部分失败")
                 .font(.title2)
                 .fontWeight(.bold)
 
-            Text("\(errors.count) items failed to import.")
+            Text("失败 \(errors.count) 项")
                 .foregroundColor(.secondary)
 
             List(errors) { error in
