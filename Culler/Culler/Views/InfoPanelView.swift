@@ -172,7 +172,24 @@ struct InfoPanelView: View {
                         InfoRow(label: "Dimensions", value: "\(width) × \(height)")
                     }
                     InfoRow(label: "Size", value: ByteCountFormatter.string(fromByteCount: photo.fileSize, countStyle: .file))
-                    InfoRow(label: "Path", value: photo.filePath)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Path")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                        HStack(spacing: 8) {
+                            Text(photo.filePath)
+                                .font(.system(size: 12))
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            Button(action: {
+                                NSWorkspace.shared.activateFileViewerSelecting([photo.fileURL])
+                            }) {
+                                Image(systemName: "folder")
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
                 } label: {
                     Text("File")
                         .font(.subheadline)
@@ -181,10 +198,10 @@ struct InfoPanelView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 16)
-            .padding(.bottom, 72)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Color(NSColor(hex: "#252525")))
+        
     }
 }
 

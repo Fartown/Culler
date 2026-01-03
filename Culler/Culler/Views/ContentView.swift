@@ -198,6 +198,15 @@ struct ContentView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .layoutPriority(1)
+                .safeAreaInset(edge: .bottom) {
+                    if viewMode != .fullscreen {
+                        MarkingToolbar(
+                            selectedPhotos: selectedPhotos,
+                            photos: photos,
+                            modelContext: modelContext
+                        )
+                    }
+                }
                 .overlay(alignment: .topLeading) {
                     if !showLeftNav {
                         Button {
@@ -342,13 +351,6 @@ struct ContentView: View {
         }
         .onDisappear {
             KeyboardShortcutManager.shared.stop()
-        }
-        .safeAreaInset(edge: .bottom) {
-            MarkingToolbar(
-                selectedPhotos: selectedPhotos,
-                photos: photos,
-                modelContext: modelContext
-            )
         }
         .alert("同步完成", isPresented: Binding(get: { syncResultText != nil }, set: { if !$0 { syncResultText = nil } })) {
             Button("好的") { syncResultText = nil }
