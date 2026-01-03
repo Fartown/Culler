@@ -13,6 +13,10 @@ struct AlbumManagementView: View {
     @State private var newTagName = ""
     @State private var newTagColor = "#007AFF"
 
+    private var rootAlbums: [Album] {
+        albums.filter { $0.parent == nil }
+    }
+
     var body: some View {
         HSplitView {
             VStack(alignment: .leading, spacing: 0) {
@@ -28,7 +32,7 @@ struct AlbumManagementView: View {
                 .padding()
 
                 List(selection: $selectedAlbum) {
-                    ForEach(albums.filter { $0.parent == nil }) { album in
+                    ForEach(rootAlbums) { album in
                         AlbumRow(album: album, level: 0)
                     }
                     .onDelete(perform: deleteAlbums)
@@ -138,7 +142,7 @@ struct AlbumManagementView: View {
 
     private func deleteAlbums(at offsets: IndexSet) {
         for index in offsets {
-            modelContext.delete(albums[index])
+            modelContext.delete(rootAlbums[index])
         }
     }
 

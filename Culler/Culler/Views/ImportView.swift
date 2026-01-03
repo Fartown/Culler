@@ -12,6 +12,7 @@ struct ImportView: View {
     @State private var importMode: ImportMode = .reference
     @State private var isImporting = false
     @State private var importProgress: Double = 0
+    @State private var processedCount = 0
     @State private var importedCount = 0
     @State private var totalCount = 0
     @State private var importErrors: [ImportErrorItem] = []
@@ -45,7 +46,7 @@ struct ImportView: View {
                 VStack(spacing: 16) {
                     ProgressView(value: importProgress)
                         .progressViewStyle(.linear)
-                    Text("Importing \(importedCount) of \(totalCount)...")
+                    Text("Importing \(processedCount) of \(totalCount)...")
                         .foregroundColor(.secondary)
                 }
                 .padding(40)
@@ -203,10 +204,14 @@ struct ImportView: View {
     private func performImport() {
         isImporting = true
         totalCount = selectedFiles.count
+        processedCount = 0
         importedCount = 0
         importErrors = []
+        importProgress = 0
 
         Task {
+            let existingPaths = await MainActor.run { existingImportedFilePathSet() }
+            var seenPaths = existingPaths
             for url in selectedFiles {
                 let finalURL: URL
                 
@@ -216,12 +221,27 @@ struct ImportView: View {
                         finalURL = try copyToLibrary(sourceURL: url)
                     } catch {
                         let reason = (error as NSError).localizedDescription
-                        importErrors.append(ImportErrorItem(filename: url.lastPathComponent, reason: "Copy failed: \(reason)"))
+                        await MainActor.run {
+                            processedCount += 1
+                            importErrors.append(ImportErrorItem(filename: url.lastPathComponent, reason: "Copy failed: \(reason)"))
+                            importProgress = Double(processedCount) / Double(max(1, totalCount))
+                        }
                         continue
                     }
                 } else {
                     finalURL = url
                 }
+
+                // 1.5 Deduplicate by path (MVP)
+                if seenPaths.contains(finalURL.path) {
+                    await MainActor.run {
+                        processedCount += 1
+                        importErrors.append(ImportErrorItem(filename: url.lastPathComponent, reason: "Skipped: already imported"))
+                        importProgress = Double(processedCount) / Double(max(1, totalCount))
+                    }
+                    continue
+                }
+                seenPaths.insert(finalURL.path)
 
                 // 2. Create Security Bookmark (Crucial for Sandboxed Apps)
                 var bookmark: Data? = nil
@@ -238,7 +258,11 @@ struct ImportView: View {
                         bookmark = try finalURL.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
                     } catch {
                         print("Failed to create bookmark for \(finalURL.path): \(error)")
-                        importErrors.append(ImportErrorItem(filename: url.lastPathComponent, reason: "Permission error: Failed to create security bookmark"))
+                        await MainActor.run {
+                            processedCount += 1
+                            importErrors.append(ImportErrorItem(filename: url.lastPathComponent, reason: "Permission error: Failed to create security bookmark"))
+                            importProgress = Double(processedCount) / Double(max(1, totalCount))
+                        }
                         // We continue even if bookmark fails, but the image might not load later.
                         // Alternatively, we could fail the import here. Let's fail it to be safe.
                         continue
@@ -249,8 +273,9 @@ struct ImportView: View {
                 let photo = Photo(filePath: finalURL.path, bookmarkData: bookmark)
                 await MainActor.run {
                     modelContext.insert(photo)
+                    processedCount += 1
                     importedCount += 1
-                    importProgress = Double(importedCount) / Double(totalCount)
+                    importProgress = Double(processedCount) / Double(max(1, totalCount))
                 }
             }
 
@@ -263,6 +288,13 @@ struct ImportView: View {
                 }
             }
         }
+    }
+
+    @MainActor
+    private func existingImportedFilePathSet() -> Set<String> {
+        let desc = FetchDescriptor<Photo>()
+        let photos = (try? modelContext.fetch(desc)) ?? []
+        return Set(photos.map(\.filePath))
     }
 
     private func libraryDirectoryURL() throws -> URL {
@@ -282,6 +314,15 @@ struct ImportView: View {
     private func copyToLibrary(sourceURL: URL) throws -> URL {
         let dir = try libraryDirectoryURL()
         let fileManager = FileManager.default
+
+        let directCandidate = dir.appendingPathComponent(sourceURL.lastPathComponent)
+        if fileManager.fileExists(atPath: directCandidate.path) {
+            let srcSize = (try? fileManager.attributesOfItem(atPath: sourceURL.path)[.size] as? Int64) ?? -1
+            let dstSize = (try? fileManager.attributesOfItem(atPath: directCandidate.path)[.size] as? Int64) ?? -2
+            if srcSize >= 0, srcSize == dstSize {
+                return directCandidate
+            }
+        }
 
         let ext = sourceURL.pathExtension
         let baseName = sourceURL.deletingPathExtension().lastPathComponent
