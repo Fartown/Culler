@@ -31,7 +31,8 @@
 		023 /* FolderNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 125; };
 		024 /* FoldersTreeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 126; };
 		025 /* UITestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 127; };
-        026 /* FolderPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 128; };
+		026 /* FolderPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 128; };
+		027 /* SortOption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 129; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -62,7 +63,8 @@
 		125 /* FolderNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderNode.swift; sourceTree = "<group>"; };
 		126 /* FoldersTreeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoldersTreeView.swift; sourceTree = "<group>"; };
 		127 /* UITestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestSupport.swift; sourceTree = "<group>"; };
-        128 /* FolderPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderPreviewView.swift; sourceTree = "<group>"; };
+		128 /* FolderPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderPreviewView.swift; sourceTree = "<group>"; };
+		129 /* SortOption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SortOption.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -113,6 +115,7 @@
 			isa = PBXGroup;
 			children = (
 				102 /* Photo.swift */,
+				129 /* SortOption.swift */,
 				103 /* Album.swift */,
 				104 /* Tag.swift */,
 				118 /* AppErrors.swift */,
@@ -259,7 +262,8 @@
 				023 /* FolderNode.swift in Sources */,
 				024 /* FoldersTreeView.swift in Sources */,
 				025 /* UITestSupport.swift in Sources */,
-                026 /* FolderPreviewView.swift in Sources */,
+				026 /* FolderPreviewView.swift in Sources */,
+				027 /* SortOption.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

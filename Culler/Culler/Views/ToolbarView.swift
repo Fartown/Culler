@@ -4,6 +4,7 @@ struct ToolbarView: View {
     @Binding var viewMode: ContentView.ViewMode
     let photoCount: Int
     let selectedCount: Int
+    @Binding var sortOption: SortOption
 
     var body: some View {
         HStack {
@@ -38,14 +39,21 @@ struct ToolbarView: View {
 
             HStack(spacing: 8) {
                 Menu {
-                    Button("Date Taken") {}
-                    Button("Date Imported") {}
-                    Button("File Name") {}
-                    Button("Rating") {}
+                    ForEach(SortOption.allCases) { option in
+                        Button {
+                            sortOption = option
+                        } label: {
+                            if option == sortOption {
+                                Label(option.title, systemImage: "checkmark")
+                            } else {
+                                Text(option.title)
+                            }
+                        }
+                    }
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "arrow.up.arrow.down")
-                        Text("Sort")
+                        Text("Sort: \(sortOption.title)")
                     }
                     .font(.system(size: 13))
                     .foregroundColor(.secondary)

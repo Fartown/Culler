@@ -19,6 +19,7 @@ struct ContentView: View {
     @State private var filterFolder: String? = nil
     @State private var showAlbumManager = false
     @State private var includeSubfolders: Bool = false
+    @AppStorage("sortOption") private var sortOption: SortOption = .dateImported
     @State private var showLeftNav: Bool = true
     @State private var showRightPanel: Bool = true
 
@@ -49,6 +50,10 @@ struct ContentView: View {
             }
             return true
         }
+    }
+
+    var displayedPhotos: [Photo] {
+        filteredPhotos.sorted(by: sortOption)
     }
 
     var body: some View {
@@ -96,14 +101,15 @@ struct ContentView: View {
                 ToolbarView(
                     viewMode: $viewMode,
                     photoCount: filteredPhotos.count,
-                    selectedCount: selectedPhotos.count
+                    selectedCount: selectedPhotos.count,
+                    sortOption: $sortOption
                 )
 
                 ZStack {
                     switch viewMode {
                     case .grid:
                         PhotoGridView(
-                            photos: filteredPhotos,
+                            photos: displayedPhotos,
                             selectedPhotos: $selectedPhotos,
                             currentPhoto: $currentPhoto,
                             scrollAnchor: gridScrollAnchor,
@@ -114,13 +120,13 @@ struct ContentView: View {
                         if let photo = currentPhoto {
                             SinglePhotoView(
                                 photo: photo,
-                                photos: filteredPhotos,
+                                photos: displayedPhotos,
                                 currentPhoto: $currentPhoto,
                                 onBack: { withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { viewMode = .grid } }
                             )
                             .transition(.asymmetric(insertion: .opacity, removal: .opacity))
                         } else {
-                            if filteredPhotos.isEmpty {
+                            if displayedPhotos.isEmpty {
                                 VStack {
                                     Spacer()
                                     Image(systemName: "tray")
@@ -143,12 +149,12 @@ struct ContentView: View {
                         if let photo = currentPhoto {
                             FullscreenView(
                                 photo: photo,
-                                photos: filteredPhotos,
+                                photos: displayedPhotos,
                                 currentPhoto: $currentPhoto,
                                 onExit: { withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { viewMode = .single } }
                             )
                             .transition(.asymmetric(insertion: .opacity, removal: .opacity))
-                        } else if filteredPhotos.isEmpty {
+                        } else if displayedPhotos.isEmpty {
                             VStack {
                                 Spacer()
                                 Image(systemName: "tray")
@@ -250,14 +256,14 @@ struct ContentView: View {
             } else if newValue == .grid {
                 if let anchorId = currentPhoto?.id {
                     gridScrollAnchor = anchorId
-                    let visibleIds = Set(filteredPhotos.map { $0.id })
+                    let visibleIds = Set(displayedPhotos.map { $0.id })
                     if visibleIds.contains(anchorId) {
                         selectedPhotos = [anchorId]
                     } else {
                         selectedPhotos = selectedPhotos.intersection(visibleIds)
                     }
                 } else {
-                    let visibleIds = Set(filteredPhotos.map { $0.id })
+                    let visibleIds = Set(displayedPhotos.map { $0.id })
                     selectedPhotos = selectedPhotos.intersection(visibleIds)
                 }
                 currentPhoto = nil
@@ -287,7 +293,7 @@ struct ContentView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .selectAll)) { _ in
-            selectedPhotos = Set(filteredPhotos.map { $0.id })
+            selectedPhotos = Set(displayedPhotos.map { $0.id })
         }
         
         .onAppear {
