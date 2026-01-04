@@ -12,6 +12,10 @@ struct UIStyle {
     static let dividerColor: Color = Color(NSColor(hex: "#2a2a2a"))
     static let backgroundSidebar: Color = Color(NSColor(hex: "#252525"))
     static let backgroundInspector: Color = Color(NSColor(hex: "#252525"))
+    static let listInsetLeading: CGFloat = 8
+    static let kvLabelWidth: CGFloat = 84
+    static let kvSpacing: CGFloat = 8
+    static let groupSpacing: CGFloat = 12
 }
 
 struct SectionDivider: View {
@@ -21,4 +25,3 @@ struct SectionDivider: View {
             .frame(height: 1)
     }
 }
-

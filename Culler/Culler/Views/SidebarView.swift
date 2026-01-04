@@ -1,7 +1,6 @@
 import SwiftUI
 import SwiftData
 
-// MARK: - Style Definitions
 struct UIStyle {
     static let spacing8: CGFloat = 8
     static let spacing12: CGFloat = 12
@@ -14,6 +13,10 @@ struct UIStyle {
     static let dividerColor: Color = Color(NSColor(hex: "#2a2a2a"))
     static let backgroundSidebar: Color = Color(NSColor(hex: "#252525"))
     static let backgroundInspector: Color = Color(NSColor(hex: "#252525"))
+    static let listInsetLeading: CGFloat = 8
+    static let kvLabelWidth: CGFloat = 84
+    static let kvSpacing: CGFloat = 8
+    static let groupSpacing: CGFloat = 12
 }
 
 // MARK: - SidebarFiltersView
@@ -24,57 +27,59 @@ struct SidebarFiltersView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // 第一行：旗标 + 评分
-            HStack(spacing: 16) {
-                HStack(spacing: 16) {
-                    ForEach([Flag.pick, Flag.reject, Flag.none], id: \.self) { flag in
-                        FlagIcon(flag: flag, current: filterFlag) { toggleFlag(flag) }
-                    }
-                }
-
-                HStack(spacing: 2) {
-                    ForEach(1...5, id: \.self) { star in
-                        Image(systemName: star <= filterRating ? "star.fill" : "star")
-                            .font(.system(size: 13))
-                            .foregroundColor(star <= filterRating ? .yellow : .secondary.opacity(0.4))
-                            .onTapGesture {
-                                if filterRating == star {
-                                    filterRating = 0
-                                } else {
-                                    filterRating = star
-                                }
-                            }
-                            .frame(width: 20, height: 20)
-                            .contentShape(Rectangle())
-                    }
+            // 第一行：旗标
+            HStack(spacing: 4) {
+                ForEach([Flag.pick, Flag.reject, Flag.none], id: \.self) { flag in
+                    FlagIcon(flag: flag, current: filterFlag) { toggleFlag(flag) }
                 }
             }
 
-            // 第二行：颜色标签
-            HStack(spacing: 8) {
-                ForEach(ColorLabel.allCases.filter { $0 != .none }, id: \.rawValue) { label in
-                    Circle()
-                        .fill(Color(label.color))
-                        .frame(width: 12, height: 12)
-                        .overlay(
-                            Circle()
-                                .stroke(Color.white, lineWidth: filterColorLabel == label ? 2 : 0)
-                        )
-                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 1)
+            // 第二行：评分
+            HStack(spacing: 4) {
+                ForEach(1...5, id: \.self) { star in
+                    Image(systemName: star <= filterRating ? "star.fill" : "star")
+                        .font(.system(size: 13))
+                        .foregroundColor(star <= filterRating ? .yellow : .secondary.opacity(0.4))
                         .onTapGesture {
-                            if filterColorLabel == label {
-                                filterColorLabel = nil
+                            if filterRating == star {
+                                filterRating = 0
                             } else {
-                                filterColorLabel = label
+                                filterRating = star
                             }
                         }
-                        .scaleEffect(filterColorLabel == label ? 1.2 : 1.0)
-                        .animation(.spring(response: 0.3), value: filterColorLabel)
+                        .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
+                }
+            }
+
+            // 第三行：颜色标签
+            HStack(spacing: 4) {
+                ForEach(ColorLabel.allCases.filter { $0 != .none }, id: \.rawValue) { label in
+                    ZStack {
+                        Circle()
+                            .fill(Color(label.color))
+                            .frame(width: 12, height: 12)
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white, lineWidth: filterColorLabel == label ? 2 : 0)
+                            )
+                    }
+                    .frame(width: 24, height: 24)
+                    .contentShape(Circle())
+                    .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 1)
+                    .onTapGesture {
+                        if filterColorLabel == label {
+                            filterColorLabel = nil
+                        } else {
+                            filterColorLabel = label
+                        }
+                    }
+                    .scaleEffect(filterColorLabel == label ? 1.2 : 1.0)
+                    .animation(.spring(response: 0.3), value: filterColorLabel)
                 }
             }
         }
         .padding(.vertical, 6)
-        .padding(.horizontal, 8)
     }
 
     private func toggleFlag(_ flag: Flag) {
@@ -114,9 +119,9 @@ private struct FlagIcon: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: iconName)
-                .font(.system(size: 18))
+                .font(.system(size: 14))
                 .foregroundColor(isSelected ? activeColor : .secondary.opacity(0.5))
-                .padding(6)
+                .frame(width: 24, height: 24)
                 .background(isSelected ? activeColor.opacity(0.1) : Color.clear)
                 .clipShape(Circle())
                 .overlay(
@@ -164,124 +169,141 @@ struct SidebarView: View {
         VStack(spacing: 0) {
             header
             List {
-                Section("图库") {
-                    listRow(icon: "photo.on.rectangle.angled", title: "全部照片", isSelected: baseScope == .all && filterFlag == nil) {
-                        baseScope = .all
-                        filterFlag = nil
-                    }
-                }
-
-                Section {
-                    OutlineGroup(folderNodes, children: \.children) { node in
-                        Button {
-                            baseScope = .folder(path: node.fullPath)
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "folder.fill")
-                                    .foregroundColor(.secondary)
-                                Text(node.name)
-                                    .lineLimit(1)
-                                    .font(.system(size: 13))
-                                Spacer()
-                                Text("\(includeSubfolders ? node.count : node.photos.count)")
-                                    .foregroundColor(.secondary.opacity(0.7))
-                                    .font(.system(size: 11))
-                            }
-                            .contentShape(Rectangle())
-                            .padding(.vertical, 2)
-                        }
-                        .buttonStyle(.plain)
-                        .contextMenu {
-                            Button(action: { baseScope = .folder(path: node.fullPath) }) {
-                                Label("查看照片", systemImage: "photo")
-                            }
-                            Button(action: { showImportSheet = true }) {
-                                Label("导入…", systemImage: "square.and.arrow.down")
-                            }
-                            Button(action: { onSyncFolder(node) }) {
-                                Label("同步", systemImage: "arrow.triangle.2.circlepath")
-                            }
-                            Button(action: { onRevealInFinder(node) }) {
-                                Label("在 Finder 中显示", systemImage: "folder")
-                            }
-                            Divider()
-                            Button(role: .destructive, action: { onDeleteRecursively(node) }) {
-                                Label("从库移除", systemImage: "trash")
-                            }
-                            Button(role: .destructive, action: { onDeleteFromDisk(node) }) {
-                                Label("从磁盘删除", systemImage: "trash.fill")
-                            }
-                        }
-                        .listRowBackground((baseScope == .folder(path: node.fullPath)) ? Color.accentColor.opacity(0.18) : Color.clear)
-                    }
-                } header: {
-                    HStack {
-                        Text("文件夹")
-                            .font(UIStyle.sectionHeaderFont)
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Toggle("子文件夹", isOn: $includeSubfolders)
-                            .toggleStyle(.switch)
-                            .labelsHidden()
-                            .scaleEffect(0.7)
-                    }
-                }
-
-                Section {
-                    ForEach(albums) { album in
-                        listRow(
-                            icon: album.isSmartAlbum ? "gearshape" : "rectangle.stack",
-                            title: album.name,
-                            isSelected: baseScope == .album(id: album.id)
-                        ) {
-                            baseScope = .album(id: album.id)
-                        }
-                    }
-                } header: {
-                    HStack {
-                        Text("相册")
-                            .font(UIStyle.sectionHeaderFont)
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Button(action: { showAlbumManager = true }) {
-                            Image(systemName: "plus")
-                                .frame(width: 16)
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundColor(.secondary)
-                    }
-                }
-
-                Section {
-                    SidebarFiltersView(
-                        filterFlag: $filterFlag,
-                        filterRating: $filterRating,
-                        filterColorLabel: $filterColorLabel
-                    )
-                    .listRowBackground(Color.clear)
-                    .padding(.leading, 4)
-                } header: {
-                    HStack {
-                        Text("筛选")
-                            .font(UIStyle.sectionHeaderFont)
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        if filterFlag != nil || filterRating > 0 || filterColorLabel != nil {
-                            Button(action: onClearFilters) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.secondary)
-                                    .font(.system(size: 14))
-                            }
-                            .buttonStyle(.plain)
-                            .help("清除所有筛选")
-                        }
-                    }
-                }
+                librarySection
+                foldersSection
+                albumsSection
+                filtersSection
             }
             .listStyle(.sidebar)
             .scrollContentBackground(.hidden)
         }
         .background(UIStyle.backgroundSidebar)
+    }
+
+    // MARK: - Sections
+
+    private var librarySection: some View {
+        Section("图库") {
+            listRow(icon: "photo.on.rectangle.angled", title: "全部照片", isSelected: baseScope == .all && filterFlag == nil) {
+                baseScope = .all
+                filterFlag = nil
+            }
+        }
+    }
+
+    private var foldersSection: some View {
+        Section {
+            OutlineGroup(folderNodes, children: \.children) { node in
+                Button {
+                    baseScope = .folder(path: node.fullPath)
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "folder.fill")
+                            .foregroundColor(.secondary)
+                            .frame(width: 16)
+                        Text(node.name)
+                            .lineLimit(1)
+                            .font(.system(size: 13))
+                        Spacer()
+                        Text("\(includeSubfolders ? node.count : node.photos.count)")
+                            .foregroundColor(.secondary.opacity(0.7))
+                            .font(.system(size: 11))
+                    }
+                    .contentShape(Rectangle())
+                    .padding(.vertical, 2)
+                }
+                .buttonStyle(.plain)
+                .contextMenu {
+                    Button(action: { baseScope = .folder(path: node.fullPath) }) {
+                        Label("查看照片", systemImage: "photo")
+                    }
+                    Button(action: { showImportSheet = true }) {
+                        Label("导入…", systemImage: "square.and.arrow.down")
+                    }
+                    Button(action: { onSyncFolder(node) }) {
+                        Label("同步", systemImage: "arrow.triangle.2.circlepath")
+                    }
+                    Button(action: { onRevealInFinder(node) }) {
+                        Label("在 Finder 中显示", systemImage: "folder")
+                    }
+                    Divider()
+                    Button(role: .destructive, action: { onDeleteRecursively(node) }) {
+                        Label("从库移除", systemImage: "trash")
+                    }
+                    Button(role: .destructive, action: { onDeleteFromDisk(node) }) {
+                        Label("从磁盘删除", systemImage: "trash.fill")
+                    }
+                }
+                .listRowBackground((baseScope == .folder(path: node.fullPath)) ? Color.accentColor.opacity(0.18) : Color.clear)
+                .listRowInsets(EdgeInsets(top: 0, leading: UIStyle.listInsetLeading, bottom: 0, trailing: 0))
+            }
+        } header: {
+            HStack {
+                Text("文件夹")
+                    .font(UIStyle.sectionHeaderFont)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Toggle("子文件夹", isOn: $includeSubfolders)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+                    .scaleEffect(0.7)
+            }
+        }
+    }
+
+    private var albumsSection: some View {
+        Section {
+            ForEach(albums) { album in
+                listRow(
+                    icon: album.isSmartAlbum ? "gearshape" : "rectangle.stack",
+                    title: album.name,
+                    isSelected: baseScope == .album(id: album.id)
+                ) {
+                    baseScope = .album(id: album.id)
+                }
+            }
+        } header: {
+            HStack {
+                Text("相册")
+                    .font(UIStyle.sectionHeaderFont)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Button(action: { showAlbumManager = true }) {
+                    Image(systemName: "plus")
+                        .frame(width: 16)
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    private var filtersSection: some View {
+        Section {
+            SidebarFiltersView(
+                filterFlag: $filterFlag,
+                filterRating: $filterRating,
+                filterColorLabel: $filterColorLabel
+            )
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 0, leading: UIStyle.listInsetLeading, bottom: 0, trailing: 0))
+        } header: {
+            HStack {
+                Text("筛选")
+                    .font(UIStyle.sectionHeaderFont)
+                    .foregroundColor(.secondary)
+                Spacer()
+                if filterFlag != nil || filterRating > 0 || filterColorLabel != nil {
+                    Button(action: onClearFilters) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                            .font(.system(size: 14))
+                    }
+                    .buttonStyle(.plain)
+                    .help("清除所有筛选")
+                }
+            }
+        }
     }
 
     private var header: some View {
@@ -321,11 +343,11 @@ struct SidebarView: View {
                 Spacer()
             }
             .padding(.vertical, 4)
-            .padding(.horizontal, 4)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .foregroundColor(isSelected ? .accentColor : .primary)
         .listRowBackground(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
+        .listRowInsets(EdgeInsets(top: 0, leading: UIStyle.listInsetLeading, bottom: 0, trailing: 0))
     }
 }

@@ -297,27 +297,43 @@ struct AsyncThumbnailView: View {
 
     @State private var image: NSImage?
     @State private var hasError: Bool = false
+    @State private var previousImage: NSImage?
+    @State private var isLoading: Bool = false
+    @State private var prevOpacity: Double = 0
+    @State private var newOpacity: Double = 1
 
     var body: some View {
-        Group {
+        ZStack {
+            if let prev = previousImage {
+                Image(nsImage: prev)
+                    .resizable()
+                    .aspectRatio(contentMode: contentMode)
+                    .opacity(prevOpacity)
+            }
+
             if let image = image {
                 Image(nsImage: image)
                     .resizable()
                     .aspectRatio(contentMode: contentMode)
-            } else if hasError {
+                    .opacity(newOpacity)
+            }
+
+            if hasError && image == nil && previousImage == nil {
                 Rectangle()
                     .fill(Color(NSColor(hex: "#2a2a2a")))
                     .overlay(
                         Image(systemName: "exclamationmark.triangle")
                             .foregroundColor(.secondary)
                     )
-            } else {
+            }
+
+            if image == nil {
                 Rectangle()
                     .fill(Color.gray.opacity(0.3))
-                    .overlay(
-                        ProgressView()
-                            .scaleEffect(0.5)
-                    )
+                if isLoading {
+                    ProgressView()
+                        .scaleEffect(0.5)
+                }
             }
         }
         .task(id: photo.id) {
@@ -327,8 +343,12 @@ struct AsyncThumbnailView: View {
 
     private func loadThumbnail() async {
         await MainActor.run {
+            previousImage = image
             image = nil
             hasError = false
+            isLoading = true
+            prevOpacity = previousImage == nil ? 0 : 1
+            newOpacity = 0
         }
 
         let result = await ThumbnailService.shared.getThumbnail(for: photo, size: size)
@@ -337,9 +357,19 @@ struct AsyncThumbnailView: View {
             case .success(let thumbnail):
                 image = thumbnail
                 hasError = false
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    prevOpacity = 0
+                    newOpacity = 1
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+                    previousImage = nil
+                    isLoading = false
+                }
             case .failure:
                 image = nil
                 hasError = true
+                previousImage = nil
+                isLoading = false
             }
         }
     }

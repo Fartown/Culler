@@ -208,7 +208,6 @@ struct ContentView: View {
         .onPreferenceChange(LeftWidthKey.self) { w in
             if showLeftNav, w > 0 { leftPanelWidth = Double(w) }
         }
-        .animation(.easeInOut(duration: 0.25), value: showLeftNav)
         .layoutPriority(0)
     }
 
@@ -295,7 +294,7 @@ struct ContentView: View {
                     .foregroundColor(.secondary)
                 Spacer()
                 Button {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { showRightPanel = false }
+                    showRightPanel = false
                 } label: { Image(systemName: "chevron.right") }
                     .buttonStyle(.plain)
             }
@@ -323,7 +322,6 @@ struct ContentView: View {
         .onPreferenceChange(RightWidthKey.self) { w in
             if showRightPanel, w > 0 { rightPanelWidth = Double(w) }
         }
-        .animation(.easeInOut(duration: 0.25), value: showRightPanel)
         .layoutPriority(0)
     }
 
@@ -407,21 +405,15 @@ struct ContentView: View {
         })
 
         view = AnyView(view.onReceive(NotificationCenter.default.publisher(for: .enterFolderBrowser)) { _ in
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) {
-                showLeftNav = true
-            }
+            showLeftNav = true
         })
 
         view = AnyView(view.onReceive(NotificationCenter.default.publisher(for: .toggleLeftPanel)) { _ in
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) {
-                showLeftNav.toggle()
-            }
+            showLeftNav.toggle()
         })
 
         view = AnyView(view.onReceive(NotificationCenter.default.publisher(for: .toggleRightPanel)) { _ in
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) {
-                showRightPanel.toggle()
-            }
+            showRightPanel.toggle()
         })
 
 

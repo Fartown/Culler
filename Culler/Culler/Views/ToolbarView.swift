@@ -16,7 +16,7 @@ struct ToolbarView: View {
         HStack {
             HStack(spacing: 8) {
                 Button {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { showLeftNav.toggle() }
+                    showLeftNav.toggle()
                 } label: {
                     Image(systemName: "sidebar.leading")
                         .frame(width: 28, height: 28)
@@ -86,7 +86,7 @@ struct ToolbarView: View {
                 .menuStyle(.borderlessButton)
 
                 Button {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { showRightPanel.toggle() }
+                    showRightPanel.toggle()
                 } label: {
                     Image(systemName: "sidebar.trailing")
                         .frame(width: 28, height: 28)
@@ -100,5 +100,4 @@ struct ToolbarView: View {
         .background(Color(NSColor(hex: "#1f1f1f")))
     }
 }
-
 

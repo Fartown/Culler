@@ -67,133 +67,82 @@ struct InfoPanelContent: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Divider()
-
-                DisclosureGroup(isExpanded: $expandMarking) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("旗标")
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                            HStack(spacing: 8) {
-                                Image(systemName: flagIconName)
-                                    .font(.system(size: 14))
-                                    .foregroundColor(flagIconColor)
-                                Text(flagText)
-                                    .font(.system(size: 12))
-                                    .lineLimit(1)
-                                    .truncationMode(.tail)
-                                Spacer()
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("评分")
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                            HStack(spacing: 2) {
-                                ForEach(1...5, id: \.self) { i in
-                                    Image(systemName: i <= displayedRating ? "star.fill" : "star")
-                                        .font(.system(size: 11))
-                                        .foregroundColor(i <= displayedRating ? .yellow : .secondary)
+                if hasMarkingInfo {
+                    DisclosureGroup(isExpanded: $expandMarking) {
+                        VStack(alignment: .leading, spacing: UIStyle.groupSpacing) {
+                            if photo.flag != .none {
+                                KVRow(label: "旗标") {
+                                    Image(systemName: flagIconName)
+                                        .font(.system(size: 16))
+                                        .foregroundColor(flagIconColor)
                                 }
-                                Text("(\(photo.rating))")
-                                    .font(.system(size: 11))
-                                    .foregroundColor(.secondary)
-                                Spacer()
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("颜色标签")
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                            HStack(spacing: 8) {
-                                if photo.colorLabel == .none {
-                                    Circle()
-                                        .stroke(Color.gray, lineWidth: 1)
-                                        .frame(width: 12, height: 12)
-                                } else {
+                            if displayedRating > 0 {
+                                KVRow(label: "评分") {
+                                    HStack(spacing: 2) {
+                                        ForEach(0..<displayedRating, id: \.self) { _ in
+                                            Image(systemName: "star.fill")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.yellow)
+                                        }
+                                    }
+                                }
+                            }
+                            if photo.colorLabel != .none {
+                                KVRow(label: "颜色标签") {
                                     Circle()
                                         .fill(Color(photo.colorLabel.color))
                                         .frame(width: 12, height: 12)
                                 }
-                                Text(photo.colorLabel.name)
-                                    .font(.system(size: 12))
-                                    .lineLimit(1)
-                                    .truncationMode(.tail)
-                                Spacer()
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            if let tags = photo.tags, !tags.isEmpty {
+                                KVRow(label: "标签") {
+                                    Text(tags.map { $0.name }.joined(separator: ", "))
+                                        .font(.system(size: 12))
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                }
+                            }
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    InfoRow(label: "标签", value: tagsText)
-                }
-            } label: {
-                Text("标记")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-
-                Divider()
-
-                DisclosureGroup(isExpanded: $expandCamera) {
-                    if let make = photo.cameraMake {
-                        InfoRow(label: "厂商", value: make)
+                    } label: {
+                        Text("标记")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                     }
-                    if let model = photo.cameraModel {
-                        InfoRow(label: "机身", value: model)
-                    }
-                    if let lens = photo.lens {
-                        InfoRow(label: "镜头", value: lens)
-                    }
-                } label: {
-                    Text("相机")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
                 }
 
-                Divider()
-
-                DisclosureGroup(isExpanded: $expandExposure) {
-                    if let focalLength = photo.focalLength {
-                        InfoRow(label: "焦距", value: "\(Int(focalLength))mm")
+                if hasCameraInfo {
+                    DisclosureGroup(isExpanded: $expandCamera) {
+                        if let make = photo.cameraMake { InfoRow(label: "厂商", value: make) }
+                        if let model = photo.cameraModel { InfoRow(label: "机身", value: model) }
+                        if let lens = photo.lens { InfoRow(label: "镜头", value: lens) }
+                    } label: {
+                        Text("相机")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                     }
-                    if let aperture = photo.aperture {
-                        InfoRow(label: "光圈", value: "f/\(String(format: "%.1f", aperture))")
-                    }
-                    if let shutter = photo.shutterSpeed {
-                        InfoRow(label: "快门", value: shutter)
-                    }
-                    if let iso = photo.iso {
-                        InfoRow(label: "ISO", value: "\(iso)")
-                    }
-                } label: {
-                    Text("曝光")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
                 }
 
-                Divider()
+                if hasExposureInfo {
+                    DisclosureGroup(isExpanded: $expandExposure) {
+                        if let focalLength = photo.focalLength { InfoRow(label: "焦距", value: "\(Int(focalLength))mm") }
+                        if let aperture = photo.aperture { InfoRow(label: "光圈", value: "f/\(String(format: "%.1f", aperture))") }
+                        if let shutter = photo.shutterSpeed { InfoRow(label: "快门", value: shutter) }
+                        if let iso = photo.iso { InfoRow(label: "ISO", value: "\(iso)") }
+                    } label: {
+                        Text("曝光")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                }
 
                 DisclosureGroup(isExpanded: $expandFile) {
                     if let width = photo.width, let height = photo.height {
                         InfoRow(label: "尺寸", value: "\(width) × \(height)")
                     }
                     InfoRow(label: "大小", value: ByteCountFormatter.string(fromByteCount: photo.fileSize, countStyle: .file))
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("路径")
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
-                        HStack(spacing: 8) {
+                    KVRow(label: "路径") {
+                        HStack(spacing: UIStyle.kvSpacing) {
                             Text(photo.filePath)
                                 .font(.system(size: 12))
                                 .lineLimit(1)
@@ -207,11 +156,11 @@ struct InfoPanelContent: View {
                             .buttonStyle(.plain)
                         }
                     }
-            } label: {
-                Text("文件")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
+                } label: {
+                    Text("文件")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
         }
     }
 
@@ -249,29 +198,79 @@ struct InfoPanelContent: View {
         }
     }
 
-    private var tagsText: String {
+    private var tagsTextOptional: String? {
         if let tags = photo.tags, !tags.isEmpty {
             return tags.map { $0.name }.joined(separator: ", ")
         }
-        return "无"
+        return nil
+    }
+
+    private var flagValue: String? {
+        photo.flag == .none ? nil : flagText
+    }
+
+    private var ratingValue: String? {
+        displayedRating > 0 ? "\(displayedRating)" : nil
+    }
+
+    private var colorLabelValue: String? {
+        photo.colorLabel == .none ? nil : photo.colorLabel.name
+    }
+
+    private var hasMarkingInfo: Bool {
+        flagValue != nil || ratingValue != nil || colorLabelValue != nil || tagsTextOptional != nil
+    }
+
+    private var hasCameraInfo: Bool {
+        photo.cameraMake != nil || photo.cameraModel != nil || photo.lens != nil
+    }
+
+    private var hasExposureInfo: Bool {
+        photo.focalLength != nil || photo.aperture != nil || photo.shutterSpeed != nil || photo.iso != nil
     }
 }
 
 struct InfoRow: View {
     let label: String
-    let value: String
+    let value: String?
+
+    private var trimmed: String? {
+        guard let s = value?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty else { return nil }
+        return s
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        Group {
+            if let v = trimmed {
+                HStack(spacing: UIStyle.kvSpacing) {
+                    Text(label)
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                        .frame(width: UIStyle.kvLabelWidth, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(v)
+                        .font(.system(size: 12))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+}
+
+struct KVRow<Content: View>: View {
+    let label: String
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        HStack(spacing: UIStyle.kvSpacing) {
             Text(label)
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(value)
-                .font(.system(size: 12))
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(width: UIStyle.kvLabelWidth, alignment: .leading)
+            content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

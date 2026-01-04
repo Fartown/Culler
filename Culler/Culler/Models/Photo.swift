@@ -110,8 +110,68 @@ final class Photo {
         self.albums = []
         self.tags = []
 
-        loadFileInfo()
-        loadEXIF()
+        Task.detached { [fileURL = self.fileURL] in
+            var parsedSize: Int64 = 0
+            var parsedCreated: Date = Date()
+
+            if let attrs = try? FileManager.default.attributesOfItem(atPath: fileURL.path) {
+                parsedSize = attrs[.size] as? Int64 ?? 0
+                parsedCreated = attrs[.creationDate] as? Date ?? Date()
+            }
+
+            var exifCameraMake: String?
+            var exifCameraModel: String?
+            var exifLens: String?
+            var exifFocalLength: Double?
+            var exifAperture: Double?
+            var exifShutterSpeed: String?
+            var exifISO: Int?
+            var exifDateTaken: Date?
+            var pixelWidth: Int?
+            var pixelHeight: Int?
+
+            if let source = CGImageSourceCreateWithURL(fileURL as CFURL, nil),
+               let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] {
+
+                if let exif = properties[kCGImagePropertyExifDictionary] as? [CFString: Any] {
+                    if let focalLength = exif[kCGImagePropertyExifFocalLength] as? Double { exifFocalLength = focalLength }
+                    if let aperture = exif[kCGImagePropertyExifFNumber] as? Double { exifAperture = aperture }
+                    if let iso = (exif[kCGImagePropertyExifISOSpeedRatings] as? [Int])?.first { exifISO = iso }
+                    if let exposureTime = exif[kCGImagePropertyExifExposureTime] as? Double {
+                        if exposureTime >= 1 { exifShutterSpeed = "\(Int(exposureTime))s" }
+                        else { exifShutterSpeed = "1/\(Int(1/exposureTime))" }
+                    }
+                    if let dateStr = exif[kCGImagePropertyExifDateTimeOriginal] as? String {
+                        let formatter = DateFormatter()
+                        formatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
+                        exifDateTaken = formatter.date(from: dateStr)
+                    }
+                }
+
+                if let tiff = properties[kCGImagePropertyTIFFDictionary] as? [CFString: Any] {
+                    exifCameraMake = tiff[kCGImagePropertyTIFFMake] as? String
+                    exifCameraModel = tiff[kCGImagePropertyTIFFModel] as? String
+                }
+
+                pixelWidth = properties[kCGImagePropertyPixelWidth] as? Int
+                pixelHeight = properties[kCGImagePropertyPixelHeight] as? Int
+            }
+
+            await MainActor.run {
+                self.fileSize = parsedSize
+                self.dateCreated = parsedCreated
+                self.cameraMake = exifCameraMake
+                self.cameraModel = exifCameraModel
+                self.lens = exifLens
+                self.focalLength = exifFocalLength
+                self.aperture = exifAperture
+                self.shutterSpeed = exifShutterSpeed
+                self.iso = exifISO
+                self.dateTaken = exifDateTaken
+                self.width = pixelWidth
+                self.height = pixelHeight
+            }
+        }
     }
 
     private func loadFileInfo() {

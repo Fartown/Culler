@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct SinglePhotoView: View {
     let photo: Photo
@@ -11,6 +12,11 @@ struct SinglePhotoView: View {
     @State private var offset: CGSize = .zero
     @State private var image: NSImage?
     @State private var loadError: ImageLoadError?
+    @State private var previousImage: NSImage?
+    @State private var isCrossfading: Bool = false
+    @State private var prevImageOpacity: Double = 0
+    @State private var newImageOpacity: Double = 1
+    @State private var containerSize: CGSize = .zero
     
 
     var currentIndex: Int {
@@ -22,46 +28,66 @@ struct SinglePhotoView: View {
             ZStack {
                 Color(NSColor(hex: "#1a1a1a"))
 
-                if let image = image {
-                    Image(nsImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .scaleEffect(scale)
-                        .offset(offset)
-                        .gesture(
-                            MagnificationGesture()
-                                .onChanged { value in
-                                    scale = max(0.5, min(baseScale * value, 5.0))
-                                }
-                                .onEnded { value in
-                                    baseScale = max(0.5, min(baseScale * value, 5.0))
-                                    if baseScale == 1.0 { offset = .zero }
-                                }
-                        )
-                        .gesture(
-                            DragGesture()
-                                .onChanged { value in
+                ZStack {
+                    if let prev = previousImage {
+                        Image(nsImage: prev)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .scaleEffect(scale)
+                            .offset(offset)
+                            .opacity(isCrossfading ? prevImageOpacity : 0)
+                    }
+
+                    if let image = image {
+                        Image(nsImage: image)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .scaleEffect(scale)
+                            .offset(offset)
+                            .opacity(isCrossfading ? newImageOpacity : 1)
+                            .id(photo.id)
+                            .gesture(
+                                MagnificationGesture()
+                                    .onChanged { value in
+                                        scale = max(0.5, min(baseScale * value, 5.0))
+                                    }
+                                    .onEnded { value in
+                                        baseScale = max(0.5, min(baseScale * value, 5.0))
+                                        if baseScale == 1.0 { offset = .zero }
+                                    }
+                            )
+                            .gesture(
+                                DragGesture()
+                                    .onChanged { value in
+                                        if scale > 1 {
+                                            offset = value.translation
+                                        }
+                                    }
+                                    .onEnded { _ in
+                                        if scale == 1 {
+                                            offset = .zero
+                                        }
+                                    }
+                            )
+                            .onTapGesture(count: 2) {
+                                withAnimation {
                                     if scale > 1 {
-                                        offset = value.translation
-                                    }
-                                }
-                                .onEnded { _ in
-                                    if scale == 1 {
+                                        scale = 1
                                         offset = .zero
+                                    } else {
+                                        scale = 2
                                     }
-                                }
-                        )
-                        .onTapGesture(count: 2) {
-                            withAnimation {
-                                if scale > 1 {
-                                    scale = 1
-                                    offset = .zero
-                                } else {
-                                    scale = 2
                                 }
                             }
-                        }
-                } else if let error = loadError {
+                    }
+                    if previousImage != nil && image == nil {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    }
+                }
+                .opacity((image != nil || previousImage != nil) ? 1 : 0)
+                
+                if image == nil && previousImage == nil, let error = loadError {
                      VStack(spacing: 12) {
                         Image(systemName: "exclamationmark.triangle")
                             .font(.system(size: 48))
@@ -80,7 +106,7 @@ struct SinglePhotoView: View {
                                 .multilineTextAlignment(.center)
                         }
                     }
-                } else {
+                } else if image == nil && previousImage == nil {
                     ProgressView()
                 }
 
@@ -130,12 +156,17 @@ struct SinglePhotoView: View {
                 .padding(.horizontal, 20)
             }
             .clipped()
-        }
-        .onAppear {
-            loadFullImage()
+            .onAppear {
+                containerSize = geometry.size
+                loadFullImage(crossfade: false, containerSize: geometry.size)
+            }
         }
         .onChange(of: photo.id) { _, _ in
-            loadFullImage()
+            previousImage = image
+            prevImageOpacity = 1
+            newImageOpacity = 0
+            isCrossfading = true
+            loadFullImage(crossfade: true, containerSize: containerSize)
         }
         .onReceive(NotificationCenter.default.publisher(for: .navigateLeft)) { _ in
             navigatePrevious()
@@ -170,23 +201,60 @@ struct SinglePhotoView: View {
         }
     }
 
-    private func loadFullImage() {
-        // Reset state
-        self.image = nil
+    private func loadFullImage(crossfade: Bool, containerSize: CGSize) {
         self.loadError = nil
-        self.scale = 1.0
-        self.baseScale = 1.0
-        self.offset = .zero
+        if !crossfade {
+            self.image = nil
+            self.previousImage = nil
+            self.scale = 1.0
+            self.baseScale = 1.0
+            self.offset = .zero
+            self.prevImageOpacity = 0
+            self.newImageOpacity = 1
+            self.isCrossfading = false
+        }
 
         Task {
             let maxSide = CGFloat(max(photo.width ?? 0, photo.height ?? 0))
-            let target = maxSide > 0 ? min(maxSide, 4096) : 4096
+            let scale = NSScreen.main?.backingScaleFactor ?? 2.0
+            let containerMax = max(containerSize.width, containerSize.height) * scale
+            let naturalMax = (maxSide > 0 ? maxSide : 4096)
+            let target = min(4096, max(1024, min(containerMax, naturalMax)))
+
+            if image == nil && previousImage == nil {
+                let thumbSize = max(128, min(containerMax / 2, 1024))
+                let thumbResult = await ThumbnailService.shared.getThumbnail(for: photo, size: thumbSize)
+                await MainActor.run {
+                    if case .success(let thumb) = thumbResult, self.image == nil {
+                        self.image = thumb
+                    }
+                }
+            }
             let result = await ThumbnailService.shared.getDisplayImage(for: photo, maxPixelSize: target)
             
             await MainActor.run {
                 switch result {
                 case .success(let nsImage):
-                    self.image = nsImage
+                    if crossfade {
+                        self.image = nsImage
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            self.prevImageOpacity = 0
+                            self.newImageOpacity = 1
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+                            self.previousImage = nil
+                            self.isCrossfading = false
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                self.scale = 1.0
+                                self.baseScale = 1.0
+                                self.offset = .zero
+                            }
+                        }
+                        preloadNeighbors(maxPixelSize: target)
+                    } else {
+                        self.image = nsImage
+                        preloadNeighbors(maxPixelSize: target)
+                    }
                 case .failure(let error):
                     self.loadError = error
                     print("Error loading full image: \(error.localizedDescription)")
@@ -195,15 +263,35 @@ struct SinglePhotoView: View {
         }
     }
 
+    private func preloadNeighbors(maxPixelSize: CGFloat) {
+        let idx = currentIndex
+        if idx > 0 {
+            let prevPhoto = photos[idx - 1]
+            Task {
+                _ = await ThumbnailService.shared.getDisplayImage(for: prevPhoto, maxPixelSize: maxPixelSize)
+            }
+        }
+        if idx < photos.count - 1 {
+            let nextPhoto = photos[idx + 1]
+            Task {
+                _ = await ThumbnailService.shared.getDisplayImage(for: nextPhoto, maxPixelSize: maxPixelSize)
+            }
+        }
+    }
+
     private func navigatePrevious() {
         if currentIndex > 0 {
-            currentPhoto = photos[currentIndex - 1]
+            withAnimation(.easeInOut(duration: 0.25)) {
+                currentPhoto = photos[currentIndex - 1]
+            }
         }
     }
 
     private func navigateNext() {
         if currentIndex < photos.count - 1 {
-            currentPhoto = photos[currentIndex + 1]
+            withAnimation(.easeInOut(duration: 0.25)) {
+                currentPhoto = photos[currentIndex + 1]
+            }
         }
     }
 }

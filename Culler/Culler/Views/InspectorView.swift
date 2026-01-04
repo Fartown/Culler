@@ -25,6 +25,6 @@ struct InspectorView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 12)
         }
-        .background(Color(NSColor(hex: "#252525")))
+        .background(UIStyle.backgroundInspector)
     }
 }

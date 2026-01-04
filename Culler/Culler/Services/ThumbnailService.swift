@@ -13,6 +13,13 @@ actor ThumbnailService {
         return cache
     }()
 
+    private var displayCache: NSCache<NSString, NSImage> = {
+        let cache = NSCache<NSString, NSImage>()
+        cache.countLimit = 500
+        cache.totalCostLimit = 256 * 1024 * 1024 // 256MB
+        return cache
+    }()
+
     func getThumbnail(for photo: Photo, size: CGFloat) async -> Result<NSImage, ImageLoadError> {
         let cacheKey = "\(photo.filePath)_\(Int(size))" as NSString
 
@@ -50,6 +57,13 @@ actor ThumbnailService {
     }
 
     func getDisplayImage(for photo: Photo, maxPixelSize: CGFloat = 4096) async -> Result<NSImage, ImageLoadError> {
+        let cacheKey = "\(photo.filePath)_\(Int(maxPixelSize))" as NSString
+
+        if let cached = displayCache.object(forKey: cacheKey) {
+            print("Display cache hit: \(photo.fileName) size \(Int(maxPixelSize)))")
+            return .success(cached)
+        }
+
         let url = photo.fileURL
 
         let needsAccess = photo.bookmarkData != nil
@@ -71,7 +85,14 @@ actor ThumbnailService {
             return .failure(.fileNotFound)
         }
 
-        return await generateLargeImage(for: url, maxPixelSize: maxPixelSize)
+        let t0 = CFAbsoluteTimeGetCurrent()
+        let result = await generateLargeImage(for: url, maxPixelSize: maxPixelSize)
+        let dt = Int((CFAbsoluteTimeGetCurrent() - t0) * 1000)
+        print("Display decode: \(photo.fileName) size \(Int(maxPixelSize))) took \(dt)ms")
+        if case .success(let image) = result {
+            displayCache.setObject(image, forKey: cacheKey)
+        }
+        return result
     }
 
     private func generateThumbnail(for url: URL, size: CGFloat) async -> Result<NSImage, ImageLoadError> {
@@ -147,5 +168,6 @@ actor ThumbnailService {
 
     func clearCache() {
         cache.removeAllObjects()
+        displayCache.removeAllObjects()
     }
 }
