@@ -91,7 +91,6 @@ struct ToolbarView: View {
                             .font(.system(size: 8, weight: .bold))
                             .foregroundColor(.secondary.opacity(0.7))
                     }
-                    .fixedSize(horizontal: true, vertical: true)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 4)
                     .background(Color.black.opacity(0.18))
@@ -100,9 +99,10 @@ struct ToolbarView: View {
                         RoundedRectangle(cornerRadius: 6)
                             .stroke(Color.white.opacity(0.08), lineWidth: 1)
                     )
+                    .frame(minWidth: 180)
+                    .layoutPriority(1)
                 }
                 .menuStyle(.borderlessButton)
-                .fixedSize(horizontal: true, vertical: false)
 
                 HStack(spacing: 6) {
                     Button {
