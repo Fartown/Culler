@@ -8,11 +8,17 @@ struct PhotoGridView: View {
     var scrollAnchor: UUID?
     var onDoubleClick: () -> Void
 
-    @State private var thumbnailSize: CGFloat = 150
+    @AppStorage("gridThumbnailSize") private var thumbnailSizeValue: Double = 150
     @State private var hoveredPhoto: UUID?
     @State private var viewportWidth: CGFloat = 0
+    private let minThumb: Double = 80
+    private let maxThumb: Double = 300
+    private let zoomStep: Double = 1.1
+    private var thumbnailSizeCGFloat: CGFloat { CGFloat(thumbnailSizeValue) }
 
-    private let columns = [GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 8)]
+    private var columns: [GridItem] {
+        [GridItem(.adaptive(minimum: thumbnailSizeCGFloat, maximum: thumbnailSizeCGFloat), spacing: 8)]
+    }
 
     var body: some View {
         Group {
@@ -35,17 +41,17 @@ struct PhotoGridView: View {
                                     photo: photo,
                                     isSelected: selectedPhotos.contains(photo.id),
                                     isHovered: hoveredPhoto == photo.id,
-                                    size: thumbnailSize
+                                    size: thumbnailSizeCGFloat
                                 )
                                 .id(photo.id)
                             .accessibilityIdentifier("photo_thumbnail")
-                            .onTapGesture {
-                                handleSelection(photo: photo, shiftKey: NSEvent.modifierFlags.contains(.shift))
-                            }
-                            .onTapGesture(count: 2) {
+                            .highPriorityGesture(TapGesture(count: 2).onEnded {
                                 currentPhoto = photo
                                 onDoubleClick()
-                            }
+                            })
+                            .simultaneousGesture(TapGesture().onEnded {
+                                handleSelection(photo: photo, shiftKey: NSEvent.modifierFlags.contains(.shift))
+                            })
                             .onHover { isHovered in
                                 hoveredPhoto = isHovered ? photo.id : nil
                             }
@@ -105,6 +111,17 @@ struct PhotoGridView: View {
         .onReceive(NotificationCenter.default.publisher(for: .navigateDown)) { _ in
             navigateBy(delta: gridStride())
         }
+        .onReceive(NotificationCenter.default.publisher(for: .zoomIn)) { note in
+            if (note.object as? String) == "scrollWheel" { return }
+            adjustThumbnailSize(increase: true)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .zoomOut)) { note in
+            if (note.object as? String) == "scrollWheel" { return }
+            adjustThumbnailSize(increase: false)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .zoomReset)) { _ in
+            thumbnailSizeValue = 150
+        }
         .onKeyPress(.leftArrow) {
             navigateBy(delta: -1)
             return .handled
@@ -152,11 +169,16 @@ struct PhotoGridView: View {
         currentPhoto = target
     }
 
+    private func adjustThumbnailSize(increase: Bool) {
+        let next = increase ? thumbnailSizeValue * zoomStep : thumbnailSizeValue / zoomStep
+        thumbnailSizeValue = max(min(next, maxThumb), minThumb)
+    }
+
     private func gridStride() -> Int {
         let spacing: CGFloat = 8
         let padding: CGFloat = 32
         let usable = max(0, viewportWidth - padding + spacing)
-        let perRow = Int(floor(usable / (thumbnailSize + spacing)))
+        let perRow = Int(floor(usable / (thumbnailSizeCGFloat + spacing)))
         return max(1, perRow)
     }
 }
@@ -342,6 +364,19 @@ struct AsyncThumbnailView: View {
     }
 
     private func loadThumbnail() async {
+        // 1. 优先检查内存缓存 (同步)
+        if let cached = ThumbnailService.shared.cachedThumbnail(for: photo, size: size) {
+            await MainActor.run {
+                image = cached
+                hasError = false
+                isLoading = false
+                previousImage = nil
+                newOpacity = 1.0
+                prevOpacity = 0
+            }
+            return
+        }
+
         await MainActor.run {
             previousImage = image
             image = nil
@@ -352,6 +387,9 @@ struct AsyncThumbnailView: View {
         }
 
         let result = await ThumbnailService.shared.getThumbnail(for: photo, size: size)
+        
+        if Task.isCancelled { return }
+
         await MainActor.run {
             switch result {
             case .success(let thumbnail):
@@ -385,14 +423,14 @@ struct PhotoContextMenu: View {
     var body: some View {
         Group {
             Menu("旗标") {
-                Button("已选") { targets.forEach { $0.flag = .pick } }
-                Button("已拒") { targets.forEach { $0.flag = .reject } }
-                Button("未标记") { targets.forEach { $0.flag = .none } }
+                Button("已选（P）") { targets.forEach { $0.flag = .pick } }
+                Button("已拒（X）") { targets.forEach { $0.flag = .reject } }
+                Button("未标记（U）") { targets.forEach { $0.flag = .none } }
             }
 
             Menu("评分") {
                 ForEach(0...5, id: \.self) { rating in
-                    Button(rating == 0 ? "清除" : String(repeating: "★", count: rating)) {
+                    Button(rating == 0 ? "清除（0）" : String(repeating: "★", count: rating) + "（\(rating)）") {
                         targets.forEach { $0.rating = rating }
                     }
                 }
@@ -415,20 +453,23 @@ struct PhotoContextMenu: View {
             Button(role: .destructive) {
                 targets.forEach { modelContext.delete($0) }
             } label: {
-                Text("从库移除")
+                Text("从库移除（⌫）")
             }
+            .keyboardShortcut(.delete, modifiers: [])
 
             Button(role: .destructive) {
                 targets.forEach { deleteFromDisk($0) }
             } label: {
-                Text("从磁盘删除（仅当前文件）")
+                Text("从磁盘删除（仅当前文件，⇧⌫）")
             }
+            .keyboardShortcut(.delete, modifiers: [.shift])
 
             Button(role: .destructive) {
                 deleteFromDiskWithRawJpgPair(targets)
             } label: {
-                Text("从磁盘删除（RAW+JPG）")
+                Text("从磁盘删除（RAW+JPG，⌘⌫）")
             }
+            .keyboardShortcut(.delete, modifiers: [.command])
 
             if let single = targets.first, targets.count == 1 {
                 Divider()

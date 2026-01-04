@@ -35,6 +35,9 @@
 		027 /* SortOption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 129; };
 		028 /* ImportedFolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 131; };
 		029 /* FolderSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 132; };
+		031 /* WindowAccessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 134; };
+		032 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 135; };
+		033 /* VideoPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 136; };
 		030 /* InspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 133; };
 /* End PBXBuildFile section */
 
@@ -71,6 +74,9 @@
 		131 /* ImportedFolder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportedFolder.swift; sourceTree = "<group>"; };
 		132 /* FolderSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderSyncService.swift; sourceTree = "<group>"; };
 		133 /* InspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorView.swift; sourceTree = "<group>"; };
+		134 /* WindowAccessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowAccessor.swift; sourceTree = "<group>"; };
+		135 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		136 /* VideoPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPlayerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -149,6 +155,9 @@
 					121 /* EmptyStateView.swift */,
 					126 /* FoldersTreeView.swift */,
 	                128 /* FolderPreviewView.swift */,
+					134 /* WindowAccessor.swift */,
+					135 /* SettingsView.swift */,
+					136 /* VideoPlayerView.swift */,
 				);
 				path = Views;
 				sourceTree = "<group>";
@@ -276,9 +285,12 @@
 				027 /* SortOption.swift in Sources */,
 				028 /* ImportedFolder.swift in Sources */,
 				029 /* FolderSyncService.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
+				031 /* WindowAccessor.swift in Sources */,
+					032 /* SettingsView.swift in Sources */,
+					033 /* VideoPlayerView.swift in Sources */,
+				);
+				runOnlyForDeploymentPostprocessing = 0;
+			};
         
 /* End PBXSourcesBuildPhase section */
 

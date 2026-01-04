@@ -3,6 +3,7 @@ import SwiftData
 
 struct MarkingToolbar: View {
     let targetCount: Int
+    let currentRating: Int
     let onSetFlag: (Flag) -> Void
     let onSetRating: (Int) -> Void
     let onSetColorLabel: (ColorLabel) -> Void
@@ -72,20 +73,23 @@ struct MarkingToolbar: View {
                 .foregroundColor(.secondary)
                 .font(.system(size: 13))
 
-            ForEach(1...5, id: \.self) { rating in
-                RatingButton(rating: rating) {
-                    onSetRating(rating)
+            HStack(spacing: 4) {
+                ForEach(1...5, id: \.self) { star in
+                    Image(systemName: star <= currentRating ? "star.fill" : "star")
+                        .font(.system(size: 13))
+                        .foregroundColor(star <= currentRating ? .yellow : .secondary.opacity(0.4))
+                        .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            if currentRating == star {
+                                onSetRating(0)
+                            } else {
+                                onSetRating(star)
+                            }
+                        }
+                        .accessibilityIdentifier("mark_rating_\(star)")
                 }
-                .accessibilityIdentifier("mark_rating_\(rating)")
             }
-
-            Button(action: { onSetRating(0) }) {
-                Text("清除")
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
-            }
-            .buttonStyle(PressableButtonStyle())
-            .accessibilityIdentifier("mark_rating_clear")
         }
     }
 

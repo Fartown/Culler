@@ -67,49 +67,52 @@ struct InfoPanelContent: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                if hasMarkingInfo {
-                    DisclosureGroup(isExpanded: $expandMarking) {
-                        VStack(alignment: .leading, spacing: UIStyle.groupSpacing) {
-                            if photo.flag != .none {
-                                KVRow(label: "旗标") {
-                                    Image(systemName: flagIconName)
-                                        .font(.system(size: 16))
-                                        .foregroundColor(flagIconColor)
-                                }
+                DisclosureGroup(isExpanded: $expandMarking) {
+                    VStack(alignment: .leading, spacing: UIStyle.groupSpacing) {
+                        if photo.flag != .none {
+                            KVRow(label: "旗标") {
+                                Image(systemName: flagIconName)
+                                    .font(.system(size: 16))
+                                    .foregroundColor(flagIconColor)
                             }
-                            if displayedRating > 0 {
-                                KVRow(label: "评分") {
-                                    HStack(spacing: 2) {
-                                        ForEach(0..<displayedRating, id: \.self) { _ in
-                                            Image(systemName: "star.fill")
-                                                .font(.system(size: 12))
-                                                .foregroundColor(.yellow)
-                                        }
+                        }
+                        if displayedRating > 0 {
+                            KVRow(label: "评分") {
+                                HStack(spacing: 2) {
+                                    ForEach(0..<displayedRating, id: \.self) { _ in
+                                        Image(systemName: "star.fill")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.yellow)
                                     }
                                 }
                             }
-                            if photo.colorLabel != .none {
-                                KVRow(label: "颜色标签") {
-                                    Circle()
-                                        .fill(Color(photo.colorLabel.color))
-                                        .frame(width: 12, height: 12)
-                                }
-                            }
-                            if let tags = photo.tags, !tags.isEmpty {
-                                KVRow(label: "标签") {
-                                    Text(tags.map { $0.name }.joined(separator: ", "))
-                                        .font(.system(size: 12))
-                                        .lineLimit(1)
-                                        .truncationMode(.middle)
-                                }
+                        }
+                        if photo.colorLabel != .none {
+                            KVRow(label: "颜色标签") {
+                                Circle()
+                                    .fill(Color(photo.colorLabel.color))
+                                    .frame(width: 12, height: 12)
                             }
                         }
+                        if let tags = photo.tags, !tags.isEmpty {
+                            KVRow(label: "标签") {
+                                Text(tags.map { $0.name }.joined(separator: ", "))
+                                    .font(.system(size: 12))
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                            }
+                        }
+                        if photo.flag == .none && displayedRating == 0 && photo.colorLabel == .none && (photo.tags?.isEmpty ?? true) {
+                            Text("暂无标记")
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary)
+                        }
+                    }
                     } label: {
                         Text("标记")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
-                }
 
                 if hasCameraInfo {
                     DisclosureGroup(isExpanded: $expandCamera) {
@@ -125,7 +128,7 @@ struct InfoPanelContent: View {
 
                 if hasExposureInfo {
                     DisclosureGroup(isExpanded: $expandExposure) {
-                        if let focalLength = photo.focalLength { InfoRow(label: "焦距", value: "\(Int(focalLength))mm") }
+                        if let focalLength = photo.focalLength, focalLength.isFinite { InfoRow(label: "焦距", value: "\(Int(focalLength))mm") }
                         if let aperture = photo.aperture { InfoRow(label: "光圈", value: "f/\(String(format: "%.1f", aperture))") }
                         if let shutter = photo.shutterSpeed { InfoRow(label: "快门", value: shutter) }
                         if let iso = photo.iso { InfoRow(label: "ISO", value: "\(iso)") }

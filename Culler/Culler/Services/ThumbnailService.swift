@@ -3,94 +3,106 @@ import AppKit
 import AVFoundation
 import UniformTypeIdentifiers
 
-actor ThumbnailService {
+final class ThumbnailService: Sendable {
     static let shared = ThumbnailService()
 
-    private var cache: NSCache<NSString, NSImage> = {
+    private let cache: NSCache<NSString, NSImage> = {
         let cache = NSCache<NSString, NSImage>()
         cache.countLimit = 1000
         cache.totalCostLimit = 100 * 1024 * 1024 // 100MB
         return cache
     }()
 
-    private var displayCache: NSCache<NSString, NSImage> = {
+    private let displayCache: NSCache<NSString, NSImage> = {
         let cache = NSCache<NSString, NSImage>()
         cache.countLimit = 500
         cache.totalCostLimit = 256 * 1024 * 1024 // 256MB
         return cache
     }()
 
-    func getThumbnail(for photo: Photo, size: CGFloat) async -> Result<NSImage, ImageLoadError> {
-        let cacheKey = "\(photo.filePath)_\(Int(size))" as NSString
+    private var thumbHits: Int = 0
+    private var thumbMisses: Int = 0
+    private var displayHits: Int = 0
+    private var displayMisses: Int = 0
 
-        if let cached = cache.object(forKey: cacheKey) {
+    private let queue = ImageTaskQueue(maxConcurrent: 4)
+
+    /// 同步获取缓存中的缩略图（用于快速滚动）
+    func cachedThumbnail(for photo: Photo, size: CGFloat) -> NSImage? {
+        let cacheKey = "\(photo.filePath)_\(Int(size))" as NSString
+        return cache.object(forKey: cacheKey)
+    }
+
+    func getThumbnail(for photo: Photo, size: CGFloat) async -> Result<NSImage, ImageLoadError> {
+        let cacheKey = "\(photo.filePath)_\(Int(size))"
+        let cacheKeyObj = cacheKey as NSString
+
+        if let cached = cache.object(forKey: cacheKeyObj) {
+            thumbHits += 1
             return .success(cached)
         }
 
-        let url = photo.fileURL
-        
-        let needsAccess = photo.bookmarkData != nil
-        var didStart = false
-        if needsAccess {
-            didStart = url.startAccessingSecurityScopedResource()
-            if !didStart {
-                return .failure(.permissionDenied)
+        let result = await queue.enqueue(key: cacheKey) { [weak self] in
+            guard let self = self else { return .failure(.unknown) }
+            if Task.isCancelled { return .failure(.unknown) }
+
+            let url = photo.fileURL
+            let needsAccess = photo.bookmarkData != nil
+            var didStart = false
+            if needsAccess {
+                didStart = url.startAccessingSecurityScopedResource()
+                if !didStart { return .failure(.permissionDenied) }
             }
-        }
+            defer { if didStart { url.stopAccessingSecurityScopedResource() } }
 
-        defer {
-            if didStart {
-                url.stopAccessingSecurityScopedResource()
+            if !FileManager.default.fileExists(atPath: url.path) { return .failure(.fileNotFound) }
+            if Task.isCancelled { return .failure(.unknown) }
+
+            let start = CFAbsoluteTimeGetCurrent()
+            let gen = await self.generateThumbnail(for: url, size: size)
+            if case .success(let image) = gen {
+                self.cache.setObject(image, forKey: cacheKeyObj)
+                self.thumbMisses += 1
             }
-        }
-
-        if !FileManager.default.fileExists(atPath: url.path) {
-            return .failure(.fileNotFound)
-        }
-
-        let result = await generateThumbnail(for: url, size: size)
-
-        if case .success(let image) = result {
-            cache.setObject(image, forKey: cacheKey)
+            _ = CFAbsoluteTimeGetCurrent() - start
+            return gen
         }
         return result
     }
 
     func getDisplayImage(for photo: Photo, maxPixelSize: CGFloat = 4096) async -> Result<NSImage, ImageLoadError> {
-        let cacheKey = "\(photo.filePath)_\(Int(maxPixelSize))" as NSString
+        let cacheKey = "\(photo.filePath)_\(Int(maxPixelSize))"
+        let cacheKeyObj = cacheKey as NSString
 
-        if let cached = displayCache.object(forKey: cacheKey) {
-            print("Display cache hit: \(photo.fileName) size \(Int(maxPixelSize)))")
+        if let cached = displayCache.object(forKey: cacheKeyObj) {
+            displayHits += 1
             return .success(cached)
         }
 
-        let url = photo.fileURL
+        let result = await queue.enqueue(key: cacheKey) { [weak self] in
+            guard let self = self else { return .failure(.unknown) }
+            if Task.isCancelled { return .failure(.unknown) }
 
-        let needsAccess = photo.bookmarkData != nil
-        var didStart = false
-        if needsAccess {
-            didStart = url.startAccessingSecurityScopedResource()
-            if !didStart {
-                return .failure(.permissionDenied)
+            let url = photo.fileURL
+            let needsAccess = photo.bookmarkData != nil
+            var didStart = false
+            if needsAccess {
+                didStart = url.startAccessingSecurityScopedResource()
+                if !didStart { return .failure(.permissionDenied) }
             }
-        }
+            defer { if didStart { url.stopAccessingSecurityScopedResource() } }
 
-        defer {
-            if didStart {
-                url.stopAccessingSecurityScopedResource()
+            if !FileManager.default.fileExists(atPath: url.path) { return .failure(.fileNotFound) }
+            if Task.isCancelled { return .failure(.unknown) }
+
+            let start = CFAbsoluteTimeGetCurrent()
+            let gen = await self.generateLargeImage(for: url, maxPixelSize: maxPixelSize)
+            if case .success(let image) = gen {
+                self.displayCache.setObject(image, forKey: cacheKeyObj)
+                self.displayMisses += 1
             }
-        }
-
-        if !FileManager.default.fileExists(atPath: url.path) {
-            return .failure(.fileNotFound)
-        }
-
-        let t0 = CFAbsoluteTimeGetCurrent()
-        let result = await generateLargeImage(for: url, maxPixelSize: maxPixelSize)
-        let dt = Int((CFAbsoluteTimeGetCurrent() - t0) * 1000)
-        print("Display decode: \(photo.fileName) size \(Int(maxPixelSize))) took \(dt)ms")
-        if case .success(let image) = result {
-            displayCache.setObject(image, forKey: cacheKey)
+            _ = CFAbsoluteTimeGetCurrent() - start
+            return gen
         }
         return result
     }
@@ -169,5 +181,48 @@ actor ThumbnailService {
     func clearCache() {
         cache.removeAllObjects()
         displayCache.removeAllObjects()
+    }
+
+    func metricsSummary() -> (thumbHits: Int, thumbMisses: Int, displayHits: Int, displayMisses: Int) {
+        return (thumbHits, thumbMisses, displayHits, displayMisses)
+    }
+}
+
+final actor ImageTaskQueue {
+    private var inflight: [String: Task<Result<NSImage, ImageLoadError>, Never>] = [:]
+    private var running: Int = 0
+    private let maxConcurrent: Int
+
+    init(maxConcurrent: Int) {
+        self.maxConcurrent = maxConcurrent
+    }
+
+    func enqueue(key: String, operation: @escaping () async -> Result<NSImage, ImageLoadError>) async -> Result<NSImage, ImageLoadError> {
+        if let existing = inflight[key] {
+            return await existing.value
+        }
+
+        while running >= maxConcurrent {
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
+
+        running += 1
+        let task = Task<Result<NSImage, ImageLoadError>, Never> {
+            let result = await operation()
+            await self.finish(key: key)
+            return result
+        }
+        inflight[key] = task
+        return await task.value
+    }
+
+    private func finish(key: String) {
+        running = max(0, running - 1)
+        inflight.removeValue(forKey: key)
+    }
+
+    func cancel(key: String) {
+        inflight[key]?.cancel()
+        inflight.removeValue(forKey: key)
     }
 }

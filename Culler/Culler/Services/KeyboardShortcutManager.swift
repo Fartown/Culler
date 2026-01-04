@@ -6,6 +6,9 @@ final class KeyboardShortcutManager {
     private var monitor: Any?
     private var scrollMonitor: Any?
 
+    private var videoController: VideoPlaybackControlling?
+    private var videoPlaybackActive: Bool = false
+
     func start() {
         if monitor != nil { return }
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
@@ -74,8 +77,59 @@ final class KeyboardShortcutManager {
 
         guard let chars = event.charactersIgnoringModifiers?.lowercased() else { return event }
 
+        if let vc = videoController {
+            if chars == " " || event.keyCode == 49 {
+                vc.togglePlayPause()
+                return nil
+            }
+        }
+
+        if let vc = videoController, videoPlaybackActive {
+            let enableJKL = UserDefaults.standard.object(forKey: "enableJKLShortcuts") as? Bool ?? true
+            let step = UserDefaults.standard.object(forKey: "seekStepSeconds") as? Int ?? 5
+            switch chars {
+            case "j" where enableJKL:
+                vc.seekBackward(10)
+                return nil
+            case "k" where enableJKL:
+                vc.togglePlayPause()
+                return nil
+            case "l" where enableJKL:
+                vc.seekForward(10)
+                return nil
+            case "m":
+                vc.toggleMuted()
+                return nil
+            case "f":
+                vc.toggleFullscreen()
+                return nil
+            default:
+                break
+            }
+            if event.keyCode == 123 { // 左箭头
+                vc.seekBackward(Double(step))
+                return nil
+            }
+            if event.keyCode == 124 { // 右箭头
+                vc.seekForward(Double(step))
+                return nil
+            }
+            if event.keyCode == 126 { // 上箭头
+                vc.volumeUp()
+                return nil
+            }
+            if event.keyCode == 125 { // 下箭头
+                vc.volumeDown()
+                return nil
+            }
+            if event.keyCode == 53 { // Esc
+                vc.toggleFullscreen()
+                return nil
+            }
+        }
+
         switch chars {
-        case "p":
+        case "c":
             NotificationCenter.default.post(name: .setFlag, object: Flag.pick)
             return nil
         case "x":
@@ -113,6 +167,10 @@ final class KeyboardShortcutManager {
             NotificationCenter.default.post(name: .navigateUp, object: nil)
             return nil
         }
+        if event.keyCode == 51 { // Delete
+            NotificationCenter.default.post(name: .deletePhoto, object: event.modifierFlags)
+            return nil
+        }
         return event
     }
 
@@ -126,10 +184,36 @@ final class KeyboardShortcutManager {
         if !mods.contains(.command) { return event }
         let dy = event.scrollingDeltaY != 0 ? event.scrollingDeltaY : event.deltaY
         if dy > 0 {
-            NotificationCenter.default.post(name: .zoomIn, object: nil)
+            NotificationCenter.default.post(name: .zoomIn, object: "scrollWheel")
         } else if dy < 0 {
-            NotificationCenter.default.post(name: .zoomOut, object: nil)
+            NotificationCenter.default.post(name: .zoomOut, object: "scrollWheel")
         }
         return event
+    }
+}
+
+// 视频控制协议，由播放器视图实现并注册到 KeyboardShortcutManager
+protocol VideoPlaybackControlling {
+    func togglePlayPause()
+    func seekForward(_ seconds: Double)
+    func seekBackward(_ seconds: Double)
+    func toggleMuted()
+    func changeRate(_ rate: Float)
+    func toggleFullscreen()
+    func volumeUp()
+    func volumeDown()
+    var isPlaying: Bool { get }
+}
+
+extension KeyboardShortcutManager {
+    func setVideoController(_ controller: VideoPlaybackControlling) {
+        self.videoController = controller
+    }
+    func clearVideoController() {
+        self.videoController = nil
+        self.videoPlaybackActive = false
+    }
+    func setVideoPlaybackActive(_ active: Bool) {
+        self.videoPlaybackActive = active
     }
 }

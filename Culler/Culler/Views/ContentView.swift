@@ -24,12 +24,13 @@ struct ContentView: View {
     @State private var filterFlag: Flag? = nil
     @State private var filterColorLabel: ColorLabel? = nil
     @State private var showAlbumManager = false
-    @State private var includeSubfolders: Bool = true
+    @AppStorage("includeSubfolders") private var includeSubfolders: Bool = true
     @AppStorage("sortOption") private var sortOption: SortOption = .dateImported
+    @AppStorage("showFilesInSidebar") private var showFilesInSidebar: Bool = false
     @State private var showLeftNav: Bool = true
     @State private var showRightPanel: Bool = true
-    @SceneStorage("leftPanelWidth") private var leftPanelWidth: Double = 220
-    @SceneStorage("rightPanelWidth") private var rightPanelWidth: Double = 280
+    @SceneStorage("leftPanelWidth") private var leftPanelWidth: Double = 260
+    @SceneStorage("rightPanelWidth") private var rightPanelWidth: Double = 260
     @State private var syncFolderPath: String?
     @State private var isSyncingFolder: Bool = false
     @State private var syncProgress: Double = 0
@@ -170,7 +171,7 @@ struct ContentView: View {
 
     @ViewBuilder
     private var sidebarColumn: some View {
-        let folderNodes = FolderNode.buildTree(from: photos)
+        let folderNodes = showFilesInSidebar ? FolderNode.buildTreeWithFiles(from: photos) : FolderNode.buildTree(from: photos)
         SidebarView(
             albums: albums,
             folderNodes: folderNodes,
@@ -179,7 +180,6 @@ struct ContentView: View {
             filterFlag: $filterFlag,
             filterRating: $filterRating,
             filterColorLabel: $filterColorLabel,
-            includeSubfolders: $includeSubfolders,
             showAlbumManager: $showAlbumManager,
             showLeftNav: $showLeftNav
         ) { node in
@@ -192,11 +192,29 @@ struct ContentView: View {
             startSync(folderPath: node.fullPath)
         } onClearFilters: {
             clearFilters()
+        } onSelectFile: { photo in
+            currentPhoto = photo
+            selectedPhotos = [photo.id]
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) {
+                viewMode = .single
+            }
+        } onRevealFile: { photo in
+            NSWorkspace.shared.selectFile(photo.filePath, inFileViewerRootedAtPath: "")
+        } onDeletePhotoFromLibrary: { photo in
+            if currentPhoto?.id == photo.id { currentPhoto = nil }
+            selectedPhotos.remove(photo.id)
+            modelContext.delete(photo)
+        } onDeletePhotoFromDisk: { photo in
+            let fm = FileManager.default
+            try? fm.removeItem(atPath: photo.filePath)
+            if currentPhoto?.id == photo.id { currentPhoto = nil }
+            selectedPhotos.remove(photo.id)
+            modelContext.delete(photo)
         }
         .frame(
-            minWidth: showLeftNav ? 180 : 0,
+            minWidth: showLeftNav ? 240 : 0,
             idealWidth: showLeftNav ? CGFloat(leftPanelWidth) : 0,
-            maxWidth: showLeftNav ? 360 : 0
+            maxWidth: showLeftNav ? 450 : 0
         )
         .opacity(showLeftNav ? 1 : 0)
         .allowsHitTesting(showLeftNav)
@@ -219,6 +237,7 @@ struct ContentView: View {
                     if !selectedPhotos.isEmpty || viewMode != .grid {
                         MarkingToolbar(
                             targetCount: resolveMarkingTargets(preferCurrent: preferCurrentPhotoForMarking).count,
+                            currentRating: currentMarkingRating,
                             onSetFlag: applyFlag,
                             onSetRating: applyRating,
                             onSetColorLabel: applyColorLabel
@@ -241,24 +260,26 @@ struct ContentView: View {
             onClearFilters: clearFilters,
             canSyncFolder: currentFolderPath != nil && !isSyncingFolder,
             onSyncFolder: { if let p = currentFolderPath { startSync(folderPath: p) } },
-            sortOption: $sortOption
+            sortOption: $sortOption,
+            showRotateButtons: viewMode == .single
         )
     }
 
     private var contentArea: some View {
         ZStack {
-            switch viewMode {
-            case .grid:
-                PhotoGridView(
-                    photos: displayedPhotos,
-                    selectedPhotos: $selectedPhotos,
-                    currentPhoto: $currentPhoto,
-                    scrollAnchor: gridScrollAnchor,
-                    onDoubleClick: { withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { viewMode = .single } }
-                )
-                .transition(.asymmetric(insertion: .opacity, removal: .opacity))
-            case .single:
+            PhotoGridView(
+                photos: displayedPhotos,
+                selectedPhotos: $selectedPhotos,
+                currentPhoto: $currentPhoto,
+                scrollAnchor: gridScrollAnchor,
+                onDoubleClick: { withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { viewMode = .single } }
+            )
+            .opacity(viewMode == .grid ? 1 : 0)
+            .allowsHitTesting(viewMode == .grid)
+
+            if viewMode == .single {
                 singleViewer
+                    .transition(.opacity)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -272,7 +293,10 @@ struct ContentView: View {
                 photo: photo,
                 photos: displayedPhotos,
                 currentPhoto: $currentPhoto,
-                onBack: { withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { viewMode = .grid } }
+                onBack: {
+                    currentPhoto = nil
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85, blendDuration: 0.2)) { viewMode = .grid }
+                }
             )
             .transition(.asymmetric(insertion: .opacity, removal: .opacity))
         } else if displayedPhotos.isEmpty {
@@ -293,10 +317,6 @@ struct ContentView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
-                Button {
-                    showRightPanel = false
-                } label: { Image(systemName: "chevron.right") }
-                    .buttonStyle(.plain)
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
@@ -308,7 +328,7 @@ struct ContentView: View {
             .clipped()
         }
         .frame(
-            minWidth: showRightPanel ? 280 : 0,
+            minWidth: showRightPanel ? 240 : 0,
             idealWidth: showRightPanel ? CGFloat(rightPanelWidth) : 0,
             maxWidth: showRightPanel ? 450 : 0
         )
@@ -444,7 +464,9 @@ struct ContentView: View {
         view = AnyView(view.onDisappear { KeyboardShortcutManager.shared.stop() })
 
         view = AnyView(view.onAppear {
-            restoreFolderPermissions()
+            Task {
+                await restoreFolderPermissionsAsync()
+            }
             UITestDataSeeder.seedIfNeeded(into: modelContext)
         })
 
@@ -471,7 +493,24 @@ struct ContentView: View {
             Text("文件夹权限或路径已变更。请重新导入该文件夹后再同步。")
         })
 
+        view = AnyView(view.background(WindowAccessor { window in
+            if let window = window, let screen = window.screen {
+                let visibleFrame = screen.visibleFrame
+                let newFrame = NSRect(x: visibleFrame.minX, y: visibleFrame.minY, width: visibleFrame.width, height: visibleFrame.height)
+                window.setFrame(newFrame, display: true)
+            }
+        }))
+
         return view
+    }
+
+    private var currentMarkingRating: Int {
+        let targets = resolveMarkingTargets(preferCurrent: preferCurrentPhotoForMarking)
+        guard let first = targets.first else { return 0 }
+        let r = first.rating
+        if r == 0 { return 0 }
+        for t in targets { if t.rating != r { return 0 } }
+        return r
     }
 
     @MainActor
@@ -525,21 +564,21 @@ struct ContentView: View {
         for child in node.children ?? [] { deleteNodeFromDisk(child) }
     }
 
-    private func restoreFolderPermissions() {
+    private func restoreFolderPermissionsAsync() async {
         for folder in importedFolders {
             if let data = folder.bookmarkData {
                 var stale = false
                 do {
                     let url = try URL(resolvingBookmarkData: data, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &stale)
-                    if url.startAccessingSecurityScopedResource() {
-                        print("Restored permission for \(folder.folderPath)")
-                    } else {
+                    let ok = url.startAccessingSecurityScopedResource()
+                    if !ok {
                         print("Failed to restore permission for \(folder.folderPath)")
                     }
                 } catch {
                     print("Failed to resolve bookmark for \(folder.folderPath): \(error)")
                 }
             }
+            try? await Task.sleep(nanoseconds: 10_000_000)
         }
     }
 

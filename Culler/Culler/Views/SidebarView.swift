@@ -151,7 +151,6 @@ struct SidebarView: View {
     @Binding var filterFlag: Flag?
     @Binding var filterRating: Int
     @Binding var filterColorLabel: ColorLabel?
-    @Binding var includeSubfolders: Bool
     @Binding var showAlbumManager: Bool
     @Binding var showLeftNav: Bool
 
@@ -161,9 +160,15 @@ struct SidebarView: View {
     var onSyncFolder: (FolderNode) -> Void
     var onClearFilters: () -> Void
 
+    var onSelectFile: (Photo) -> Void
+    var onRevealFile: (Photo) -> Void
+    var onDeletePhotoFromLibrary: (Photo) -> Void
+    var onDeletePhotoFromDisk: (Photo) -> Void
+
     @AppStorage("expandFolders") private var expandFolders: Bool = true
     @AppStorage("expandAlbums") private var expandAlbums: Bool = false
     @AppStorage("expandFilters") private var expandFilters: Bool = true
+    @AppStorage("includeSubfolders") private var includeSubfolders: Bool = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -195,43 +200,65 @@ struct SidebarView: View {
         Section {
             OutlineGroup(folderNodes, children: \.children) { node in
                 Button {
-                    baseScope = .folder(path: node.fullPath)
+                    if node.isFile, let p = node.photo {
+                        onSelectFile(p)
+                    } else {
+                        baseScope = .folder(path: node.fullPath)
+                    }
                 } label: {
                     HStack(spacing: 8) {
-                        Image(systemName: "folder.fill")
+                        Image(systemName: node.isFile ? "doc.fill" : "folder.fill")
                             .foregroundColor(.secondary)
                             .frame(width: 16)
                         Text(node.name)
                             .lineLimit(1)
                             .font(.system(size: 13))
                         Spacer()
-                        Text("\(includeSubfolders ? node.count : node.photos.count)")
-                            .foregroundColor(.secondary.opacity(0.7))
-                            .font(.system(size: 11))
+                        if !node.isFile {
+                            Text("\(includeSubfolders ? node.count : node.photos.count)")
+                                .foregroundColor(.secondary.opacity(0.7))
+                                .font(.system(size: 11))
+                        }
                     }
                     .contentShape(Rectangle())
                     .padding(.vertical, 2)
                 }
                 .buttonStyle(.plain)
                 .contextMenu {
-                    Button(action: { baseScope = .folder(path: node.fullPath) }) {
-                        Label("查看照片", systemImage: "photo")
-                    }
-                    Button(action: { showImportSheet = true }) {
-                        Label("导入…", systemImage: "square.and.arrow.down")
-                    }
-                    Button(action: { onSyncFolder(node) }) {
-                        Label("同步", systemImage: "arrow.triangle.2.circlepath")
-                    }
-                    Button(action: { onRevealInFinder(node) }) {
-                        Label("在 Finder 中显示", systemImage: "folder")
-                    }
-                    Divider()
-                    Button(role: .destructive, action: { onDeleteRecursively(node) }) {
-                        Label("从库移除", systemImage: "trash")
-                    }
-                    Button(role: .destructive, action: { onDeleteFromDisk(node) }) {
-                        Label("从磁盘删除", systemImage: "trash.fill")
+                    if node.isFile, let p = node.photo {
+                        Button(action: { onSelectFile(p) }) {
+                            Label("查看照片", systemImage: "photo")
+                        }
+                        Button(action: { onRevealFile(p) }) {
+                            Label("在 Finder 中显示", systemImage: "doc")
+                        }
+                        Divider()
+                        Button(role: .destructive, action: { onDeletePhotoFromLibrary(p) }) {
+                            Label("从库移除", systemImage: "trash")
+                        }
+                        Button(role: .destructive, action: { onDeletePhotoFromDisk(p) }) {
+                            Label("从磁盘删除", systemImage: "trash.fill")
+                        }
+                    } else {
+                        Button(action: { baseScope = .folder(path: node.fullPath) }) {
+                            Label("查看照片", systemImage: "photo")
+                        }
+                        Button(action: { showImportSheet = true }) {
+                            Label("导入…", systemImage: "square.and.arrow.down")
+                        }
+                        Button(action: { onSyncFolder(node) }) {
+                            Label("同步", systemImage: "arrow.triangle.2.circlepath")
+                        }
+                        Button(action: { onRevealInFinder(node) }) {
+                            Label("在 Finder 中显示", systemImage: "folder")
+                        }
+                        Divider()
+                        Button(role: .destructive, action: { onDeleteRecursively(node) }) {
+                            Label("从库移除", systemImage: "trash")
+                        }
+                        Button(role: .destructive, action: { onDeleteFromDisk(node) }) {
+                            Label("从磁盘删除", systemImage: "trash.fill")
+                        }
                     }
                 }
                 .listRowBackground((baseScope == .folder(path: node.fullPath)) ? Color.accentColor.opacity(0.18) : Color.clear)
@@ -243,10 +270,6 @@ struct SidebarView: View {
                     .font(UIStyle.sectionHeaderFont)
                     .foregroundColor(.secondary)
                 Spacer()
-                Toggle("子文件夹", isOn: $includeSubfolders)
-                    .toggleStyle(.switch)
-                    .labelsHidden()
-                    .scaleEffect(0.7)
             }
         }
     }

@@ -80,8 +80,9 @@ enum FolderSyncService {
         }
 
         let diskPaths = scanResult.diskPaths
-        let removedPaths = existingPaths.subtracting(diskPaths)
-        let addedPaths = diskPaths.subtracting(existingPaths)
+        let removedPaths = Array(existingPaths.subtracting(diskPaths))
+        let addedPaths = Array(diskPaths.subtracting(existingPaths))
+        let sortedAddedPaths = addedPaths.sorted { $0.lowercased() < $1.lowercased() }
 
         if needsBookmarks {
             upsertImportedFolderBookmark(folderURL: folderURL, modelContext: modelContext)
@@ -90,44 +91,68 @@ enum FolderSyncService {
         var errors: [ImportErrorItem] = []
         var removedCount = 0
         var addedCount = 0
-
-        let totalOps = max(removedPaths.count + addedPaths.count, 1)
-        var completedOps = 0
-        func reportProgress() {
-            progress?(min(1, 0.1 + (Double(completedOps) / Double(totalOps)) * 0.9))
+        
+        // Progress weight distribution:
+        // 1. Scanning (done)
+        // 2. Preparing additions (IO heavy) - 60% of remaining
+        // 3. Database operations (Main thread) - 40% of remaining
+        
+        let totalOps = removedPaths.count + addedPaths.count
+        if totalOps == 0 {
+            progress?(1)
+            return FolderSyncSummary(
+                folderPath: folderStandardPath,
+                addedCount: 0,
+                removedCount: 0,
+                folderMissing: scanResult.folderMissing,
+                errors: []
+            )
         }
-        reportProgress()
 
-        for path in removedPaths {
+        // 1. Prepare additions in background (Heavy I/O)
+        // We do this in a detached task to avoid blocking the Main Actor
+        let preparedAdditions = await Task.detached(priority: .userInitiated) {
+            return prepareAdditions(paths: sortedAddedPaths, needsBookmarks: needsBookmarks) { progressVal in
+                 // Map 0.0-1.0 to 0.1-0.7 range of total progress
+                 // We can't easily callback to main actor here for every item without overhead,
+                 // but let's just return the result and update progress in chunks if needed.
+                 // For simplicity, we'll update progress after this block or if we pass a callback that jumps to main.
+            }
+        }.value
+        
+        // Update progress after preparation (assume ~60% work done)
+        progress?(0.7)
+
+        // 2. Perform Database Operations on Main Actor
+        // Batch operations to allow UI updates
+        
+        // Handle Deletions
+        for (index, path) in removedPaths.enumerated() {
             if let photo = existingPhotosByPath[path] {
                 modelContext.delete(photo)
                 removedCount += 1
             }
-            completedOps += 1
-            reportProgress()
-        }
-
-        let sortedAdded = addedPaths.sorted { $0.lowercased() < $1.lowercased() }
-        for path in sortedAdded {
-            let url = URL(fileURLWithPath: path)
-            var bookmark: Data? = nil
-            if needsBookmarks {
-                do {
-                    bookmark = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
-                } catch {
-                    errors.append(ImportErrorItem(filename: url.lastPathComponent, reason: "无法创建文件权限（Bookmark）"))
-                    completedOps += 1
-                    reportProgress()
-                    continue
-                }
+            
+            // Yield every 50 items to keep UI responsive
+            if index % 50 == 0 {
+                await Task.yield()
+                let currentProgress = 0.7 + (Double(index) / Double(totalOps)) * 0.3
+                progress?(currentProgress)
             }
-
-            let photo = Photo(filePath: url.path, bookmarkData: bookmark)
+        }
+        
+        // Handle Insertions
+        for (index, item) in preparedAdditions.enumerated() {
+            let photo = Photo(filePath: item.path, bookmarkData: item.bookmark)
             modelContext.insert(photo)
             addedCount += 1
-
-            completedOps += 1
-            reportProgress()
+            
+            // Yield every 50 items
+            if index % 50 == 0 {
+                await Task.yield()
+                let currentProgress = 0.7 + (Double(removedPaths.count + index) / Double(totalOps)) * 0.3
+                progress?(currentProgress)
+            }
         }
 
         if scanResult.folderMissing {
@@ -142,6 +167,36 @@ enum FolderSyncService {
             folderMissing: scanResult.folderMissing,
             errors: errors
         )
+    }
+    
+    private struct PreparedAddition: Sendable {
+        let path: String
+        let bookmark: Data?
+    }
+    
+    private nonisolated static func prepareAdditions(paths: [String], needsBookmarks: Bool, onProgress: ((Double) -> Void)? = nil) -> [PreparedAddition] {
+        var results: [PreparedAddition] = []
+        results.reserveCapacity(paths.count)
+        
+        for (index, path) in paths.enumerated() {
+            let url = URL(fileURLWithPath: path)
+            var bookmark: Data? = nil
+            
+            if needsBookmarks {
+                do {
+                    bookmark = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
+                } catch {
+                    print("Sync: Failed to create bookmark for \(url.lastPathComponent): \(error)")
+                }
+            }
+            results.append(PreparedAddition(path: path, bookmark: bookmark))
+            
+            // Optional: Report progress periodically if we want finer grain updates during preparation
+            if index % 100 == 0 {
+                onProgress?(Double(index) / Double(paths.count))
+            }
+        }
+        return results
     }
 
     private static func isPhoto(_ photo: Photo, underFolderPath folderPath: String) -> Bool {

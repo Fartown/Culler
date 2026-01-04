@@ -33,7 +33,12 @@ struct CullerApp: App {
             PhotoCommands()
             FolderCommands()
             PanelCommands()
-            
+            ZoomCommands()
+
+        }
+
+        Settings {
+            SettingsView()
         }
     }
 }
@@ -55,7 +60,7 @@ struct PhotoCommands: Commands {
             Button("Pick") {
                 NotificationCenter.default.post(name: .setFlag, object: Flag.pick)
             }
-            .keyboardShortcut("p", modifiers: [])
+            .keyboardShortcut("c", modifiers: [])
 
             Button("Reject") {
                 NotificationCenter.default.post(name: .setFlag, object: Flag.reject)
@@ -101,6 +106,9 @@ extension Notification.Name {
     static let zoomReset = Notification.Name("zoomReset")
     static let toggleLeftPanel = Notification.Name("toggleLeftPanel")
     static let toggleRightPanel = Notification.Name("toggleRightPanel")
+    static let deletePhoto = Notification.Name("deletePhoto")
+    static let rotateLeft = Notification.Name("rotateLeft")
+    static let rotateRight = Notification.Name("rotateRight")
 }
 
 struct FolderCommands: Commands {
@@ -126,6 +134,37 @@ struct PanelCommands: Commands {
                 NotificationCenter.default.post(name: .toggleRightPanel, object: nil)
             }
             .keyboardShortcut("]", modifiers: [.command, .shift])
+        }
+    }
+}
+
+struct ZoomCommands: Commands {
+    var body: some Commands {
+        CommandMenu("View") {
+            Button("Zoom In") {
+                NotificationCenter.default.post(name: .zoomIn, object: nil)
+            }
+            .keyboardShortcut("=", modifiers: [.command, .shift])
+
+            Button("Zoom Out") {
+                NotificationCenter.default.post(name: .zoomOut, object: nil)
+            }
+            .keyboardShortcut("-", modifiers: [.command])
+
+            Button("Actual Size") {
+                NotificationCenter.default.post(name: .zoomReset, object: nil)
+            }
+            .keyboardShortcut("0", modifiers: [.command])
+
+            Button("Rotate Left") {
+                NotificationCenter.default.post(name: .rotateLeft, object: nil)
+            }
+            .keyboardShortcut("[", modifiers: [.command])
+
+            Button("Rotate Right") {
+                NotificationCenter.default.post(name: .rotateRight, object: nil)
+            }
+            .keyboardShortcut("]", modifiers: [.command])
         }
     }
 }

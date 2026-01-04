@@ -16,6 +16,15 @@ enum SortOption: String, CaseIterable, Identifiable {
         case .rating: return "评分"
         }
     }
+
+    var shortTitle: String {
+        switch self {
+        case .dateTaken: return "拍摄"
+        case .dateImported: return "导入"
+        case .fileName: return "文件"
+        case .rating: return "评分"
+        }
+    }
 }
 
 extension Array where Element == Photo {

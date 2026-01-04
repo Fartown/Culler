@@ -139,7 +139,7 @@ final class Photo {
                     if let iso = (exif[kCGImagePropertyExifISOSpeedRatings] as? [Int])?.first { exifISO = iso }
                     if let exposureTime = exif[kCGImagePropertyExifExposureTime] as? Double {
                         if exposureTime >= 1 { exifShutterSpeed = "\(Int(exposureTime))s" }
-                        else { exifShutterSpeed = "1/\(Int(1/exposureTime))" }
+                        else if exposureTime > 0 { exifShutterSpeed = "1/\(Int(1/exposureTime))" }
                     }
                     if let dateStr = exif[kCGImagePropertyExifDateTimeOriginal] as? String {
                         let formatter = DateFormatter()
@@ -202,7 +202,7 @@ final class Photo {
             if let exposureTime = exif[kCGImagePropertyExifExposureTime] as? Double {
                 if exposureTime >= 1 {
                     self.shutterSpeed = "\(Int(exposureTime))s"
-                } else {
+                } else if exposureTime > 0 {
                     self.shutterSpeed = "1/\(Int(1/exposureTime))"
                 }
             }
@@ -231,11 +231,19 @@ extension Photo {
     ]
 
     var isVideo: Bool {
-        let ext = URL(fileURLWithPath: filePath).pathExtension.lowercased()
+        // 使用 NSString 获取扩展名比创建 URL 快得多
+        let ext = (filePath as NSString).pathExtension.lowercased()
         guard !ext.isEmpty else { return false }
+        
+        // 优先检查常见视频后缀 (O(1))
+        if Self.videoFileExtensions.contains(ext) {
+            return true
+        }
+        
+        // 仅在未知后缀时回退到系统 UTType 查询 (较慢)
         if let type = UTType(filenameExtension: ext) {
             return type.conforms(to: .movie) || (type.conforms(to: .audiovisualContent) && !type.conforms(to: .audio))
         }
-        return Self.videoFileExtensions.contains(ext)
+        return false
     }
 }
