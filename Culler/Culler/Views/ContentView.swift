@@ -39,42 +39,12 @@ struct ContentView: View {
     @State private var showSyncErrorSheet: Bool = false
     @State private var showSyncMissingAlert: Bool = false
 
+    // State for optimization
+    @State private var folderNodes: [FolderNode] = []
+    @State private var displayedPhotosState: [Photo] = []
+
     enum ViewMode {
         case grid, single
-    }
-
-    private var scopedPhotos: [Photo] {
-        switch baseScope {
-        case .all:
-            return photos
-        case .folder(let path):
-            let folderPath = URL(fileURLWithPath: path).standardizedFileURL.path
-            let basePrefix = folderPath.hasSuffix("/") ? folderPath : folderPath + "/"
-            return photos.filter { photo in
-                let photoDir = URL(fileURLWithPath: photo.filePath).deletingLastPathComponent().standardizedFileURL.path
-                if includeSubfolders {
-                    return photoDir == folderPath || photoDir.hasPrefix(basePrefix)
-                }
-                return photoDir == folderPath
-            }
-        case .album(let id):
-            return photos.filter { photo in
-                (photo.albums ?? []).contains(where: { $0.id == id })
-            }
-        }
-    }
-
-    private var filteredPhotos: [Photo] {
-        scopedPhotos.filter { photo in
-            if filterRating > 0, photo.rating < filterRating { return false }
-            if let flag = filterFlag, photo.flag != flag { return false }
-            if let colorLabel = filterColorLabel, photo.colorLabel != colorLabel { return false }
-            return true
-        }
-    }
-
-    private var displayedPhotos: [Photo] {
-        filteredPhotos.sorted(by: sortOption)
     }
 
     private var currentFolderPath: String? {
@@ -108,7 +78,7 @@ struct ContentView: View {
     }
 
     private func syncSelectionWithDisplayedPhotos() {
-        let visibleIds = Set(displayedPhotos.map { $0.id })
+        let visibleIds = Set(displayedPhotosState.map { $0.id })
         selectedPhotos = selectedPhotos.intersection(visibleIds)
         if let currentPhoto, !visibleIds.contains(currentPhoto.id) {
             self.currentPhoto = nil
@@ -171,7 +141,6 @@ struct ContentView: View {
 
     @ViewBuilder
     private var sidebarColumn: some View {
-        let folderNodes = showFilesInSidebar ? FolderNode.buildTreeWithFiles(from: photos) : FolderNode.buildTree(from: photos)
         SidebarView(
             albums: albums,
             folderNodes: folderNodes,
@@ -254,7 +223,7 @@ struct ContentView: View {
             showLeftNav: $showLeftNav,
             showRightPanel: $showRightPanel,
             scopeTitle: scopeTitle + (currentFolderPath != nil && includeSubfolders ? "（含子文件夹）" : ""),
-            photoCount: filteredPhotos.count,
+            photoCount: displayedPhotosState.count,
             selectedCount: selectedPhotos.count,
             hasActiveFilters: hasActiveFilters,
             onClearFilters: clearFilters,
@@ -268,7 +237,7 @@ struct ContentView: View {
     private var contentArea: some View {
         ZStack {
             PhotoGridView(
-                photos: displayedPhotos,
+                photos: displayedPhotosState,
                 selectedPhotos: $selectedPhotos,
                 currentPhoto: $currentPhoto,
                 scrollAnchor: gridScrollAnchor,
@@ -291,7 +260,7 @@ struct ContentView: View {
         if let photo = currentPhoto {
             SinglePhotoView(
                 photo: photo,
-                photos: displayedPhotos,
+                photos: displayedPhotosState,
                 currentPhoto: $currentPhoto,
                 onBack: {
                     currentPhoto = nil
@@ -299,14 +268,12 @@ struct ContentView: View {
                 }
             )
             .transition(.asymmetric(insertion: .opacity, removal: .opacity))
-        } else if displayedPhotos.isEmpty {
+        } else if displayedPhotosState.isEmpty {
             EmptyStateView()
         } else {
             EmptyStateView(systemImage: "photo", title: "请选择一张照片", subtitle: nil)
         }
     }
-
-
 
     @ViewBuilder
     private var inspectorColumn: some View {
@@ -351,11 +318,11 @@ struct ContentView: View {
             VStack(spacing: 8) {
                 HStack(spacing: 10) {
                     ProgressView(value: syncProgress)
-                        .progressViewStyle(.linear)
-                        .frame(width: 240)
+                    .progressViewStyle(.linear)
+                    .frame(width: 240)
                     Text("同步中：\(URL(fileURLWithPath: path).lastPathComponent)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                     Spacer()
                 }
                 .padding(.horizontal, 12)
@@ -398,21 +365,21 @@ struct ContentView: View {
             if newValue == .single, currentPhoto == nil {
                 if let id = selectedPhotos.first, let photo = photos.first(where: { $0.id == id }) {
                     currentPhoto = photo
-                } else if let first = displayedPhotos.first {
+                } else if let first = displayedPhotosState.first {
                     currentPhoto = first
                     selectedPhotos = [first.id]
                 }
             } else if newValue == .grid {
                 if let anchorId = currentPhoto?.id {
                     gridScrollAnchor = anchorId
-                    let visibleIds = Set(displayedPhotos.map { $0.id })
+                    let visibleIds = Set(displayedPhotosState.map { $0.id })
                     if visibleIds.contains(anchorId) {
                         selectedPhotos = [anchorId]
                     } else {
                         selectedPhotos = selectedPhotos.intersection(visibleIds)
                     }
                 } else {
-                    let visibleIds = Set(displayedPhotos.map { $0.id })
+                    let visibleIds = Set(displayedPhotosState.map { $0.id })
                     selectedPhotos = selectedPhotos.intersection(visibleIds)
                 }
                 currentPhoto = nil
@@ -436,8 +403,6 @@ struct ContentView: View {
             showRightPanel.toggle()
         })
 
-
-
         view = AnyView(view.onReceive(NotificationCenter.default.publisher(for: .setFlag)) { notification in
             if let flag = notification.object as? Flag {
                 applyFlag(flag)
@@ -451,14 +416,47 @@ struct ContentView: View {
         })
 
         view = AnyView(view.onReceive(NotificationCenter.default.publisher(for: .selectAll)) { _ in
-            selectedPhotos = Set(displayedPhotos.map { $0.id })
+            selectedPhotos = Set(displayedPhotosState.map { $0.id })
         })
 
-        view = AnyView(view.onChange(of: baseScope) { _, _ in syncSelectionWithDisplayedPhotos() })
-        view = AnyView(view.onChange(of: includeSubfolders) { _, _ in syncSelectionWithDisplayedPhotos() })
-        view = AnyView(view.onChange(of: filterFlag) { _, _ in syncSelectionWithDisplayedPhotos() })
-        view = AnyView(view.onChange(of: filterRating) { _, _ in syncSelectionWithDisplayedPhotos() })
-        view = AnyView(view.onChange(of: filterColorLabel) { _, _ in syncSelectionWithDisplayedPhotos() })
+        // Optimization: Background updates triggers
+        view = AnyView(view.onAppear {
+            updateFolderNodes(with: photos)
+            updateDisplayedPhotos()
+        })
+
+        view = AnyView(view.onChange(of: photos) { _, newPhotos in
+            updateFolderNodes(with: newPhotos)
+            updateDisplayedPhotos()
+        })
+
+        view = AnyView(view.onChange(of: showFilesInSidebar) { _, _ in
+            updateFolderNodes(with: photos)
+        })
+
+        view = AnyView(view.onChange(of: baseScope) { _, _ in
+            updateDisplayedPhotos()
+            syncSelectionWithDisplayedPhotos()
+        })
+        view = AnyView(view.onChange(of: includeSubfolders) { _, _ in
+            updateDisplayedPhotos()
+            syncSelectionWithDisplayedPhotos()
+        })
+        view = AnyView(view.onChange(of: filterFlag) { _, _ in
+            updateDisplayedPhotos()
+            syncSelectionWithDisplayedPhotos()
+        })
+        view = AnyView(view.onChange(of: filterRating) { _, _ in
+            updateDisplayedPhotos()
+            syncSelectionWithDisplayedPhotos()
+        })
+        view = AnyView(view.onChange(of: filterColorLabel) { _, _ in
+            updateDisplayedPhotos()
+            syncSelectionWithDisplayedPhotos()
+        })
+        view = AnyView(view.onChange(of: sortOption) { _, _ in
+            updateDisplayedPhotos()
+        })
 
         view = AnyView(view.onAppear { KeyboardShortcutManager.shared.start() })
         view = AnyView(view.onDisappear { KeyboardShortcutManager.shared.stop() })
@@ -504,6 +502,66 @@ struct ContentView: View {
         return view
     }
 
+    private func updateFolderNodes(with photos: [Photo]) {
+        let withFiles = showFilesInSidebar
+        Task.detached(priority: .userInitiated) {
+            let nodes = withFiles ? FolderNode.buildTreeWithFiles(from: photos) : FolderNode.buildTree(from: photos)
+            await MainActor.run {
+                self.folderNodes = nodes
+            }
+        }
+    }
+
+    private func updateDisplayedPhotos() {
+        // Capture current state values for background task
+        let currentScope = baseScope
+        let includeSubs = includeSubfolders
+        let fRating = filterRating
+        let fFlag = filterFlag
+        let fColor = filterColorLabel
+        let sortOpt = sortOption
+        let currentPhotos = photos
+        let currentAlbums = albums // Needed for album scope filtering
+
+        Task.detached(priority: .userInitiated) {
+            // 1. Scope filtering
+            let scoped: [Photo]
+            switch currentScope {
+            case .all:
+                scoped = currentPhotos
+            case .folder(let path):
+                let folderPath = URL(fileURLWithPath: path).standardizedFileURL.path
+                let basePrefix = folderPath.hasSuffix("/") ? folderPath : folderPath + "/"
+                scoped = currentPhotos.filter { photo in
+                    let photoDir = URL(fileURLWithPath: photo.filePath).deletingLastPathComponent().standardizedFileURL.path
+                    if includeSubs {
+                        return photoDir == folderPath || photoDir.hasPrefix(basePrefix)
+                    }
+                    return photoDir == folderPath
+                }
+            case .album(let id):
+                scoped = currentPhotos.filter { photo in
+                    (photo.albums ?? []).contains(where: { $0.id == id })
+                }
+            }
+
+            // 2. Filter criteria
+            let filtered = scoped.filter { photo in
+                if fRating > 0, photo.rating < fRating { return false }
+                if let flag = fFlag, photo.flag != flag { return false }
+                if let colorLabel = fColor, photo.colorLabel != colorLabel { return false }
+                return true
+            }
+
+            // 3. Sorting
+            let sorted = filtered.sorted(by: sortOpt)
+
+            await MainActor.run {
+                self.displayedPhotosState = sorted
+            }
+        }
+    }
+
     private var currentMarkingRating: Int {
         let targets = resolveMarkingTargets(preferCurrent: preferCurrentPhotoForMarking)
         guard let first = targets.first else { return 0 }
@@ -522,7 +580,7 @@ struct ContentView: View {
         // wait one run loop for @Query refresh
         try? await Task.sleep(nanoseconds: 150_000_000)
 
-        guard let first = displayedPhotos.first else {
+        guard let first = displayedPhotosState.first else {
             fatalError("E2E: no photos after seeding")
         }
 

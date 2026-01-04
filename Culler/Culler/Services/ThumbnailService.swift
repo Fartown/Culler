@@ -16,7 +16,7 @@ final class ThumbnailService: Sendable {
     private let displayCache: NSCache<NSString, NSImage> = {
         let cache = NSCache<NSString, NSImage>()
         cache.countLimit = 500
-        cache.totalCostLimit = 256 * 1024 * 1024 // 256MB
+        cache.totalCostLimit = 1024 * 1024 * 1024 // 1GB
         return cache
     }()
 

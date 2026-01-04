@@ -21,7 +21,7 @@ struct SinglePhotoView: View {
     @State private var newImageOpacity: Double = 1
     @State private var containerSize: CGSize = .zero
     @State private var rotationDegrees: Int = 0
-    
+
 
     var currentIndex: Int {
         photos.firstIndex(where: { $0.id == photo.id }) ?? 0
@@ -100,7 +100,7 @@ struct SinglePhotoView: View {
                     }
                 }
                 .opacity(photo.isVideo ? 1 : ((image != nil || previousImage != nil) ? 1 : 0))
-                
+
                 if !photo.isVideo && image == nil && previousImage == nil, let error = loadError {
                      VStack(spacing: 12) {
                         Image(systemName: "exclamationmark.triangle")
@@ -112,7 +112,7 @@ struct SinglePhotoView: View {
                         Text(error.localizedDescription)
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        
+
                         if error == .permissionDenied {
                             Text("应用可能已失去该文件的访问权限。")
                                 .font(.caption2)
@@ -147,7 +147,7 @@ struct SinglePhotoView: View {
 
                         Spacer()
 
-                        
+
                     }
                     .padding()
 
@@ -168,16 +168,16 @@ struct SinglePhotoView: View {
                     .opacity(currentIndex < photos.count - 1 ? 1 : 0.3)
                 }
                 .padding(.horizontal, 20)
-                
+
                 ScrollReader { delta in
                     let sensitivity: CGFloat = 0.01
                     let newScale = scale * (1 + delta * sensitivity)
                     let clampedScale = max(0.8, min(newScale, 5.0))
-                    
+
                     if clampedScale != scale {
                         scale = clampedScale
                         baseScale = clampedScale
-                        
+
                         if scale <= 1.0 {
                             if offset != .zero {
                                 withAnimation(.easeInOut(duration: 0.1)) {
@@ -293,14 +293,14 @@ struct SinglePhotoView: View {
             }
         }
 
-        try? await Task.sleep(nanoseconds: 100_000_000)
+        // Removed artificial sleep: try? await Task.sleep(nanoseconds: 100_000_000)
 
         if baseScale > 1.5 {
             target = min(4096, target * 2)
         }
-        
+
         let result = await ThumbnailService.shared.getDisplayImage(for: photo, maxPixelSize: target)
-        
+
         if Task.isCancelled { return }
 
         switch result {
@@ -311,7 +311,8 @@ struct SinglePhotoView: View {
                     self.prevImageOpacity = 0
                     self.newImageOpacity = 1
                 }
-                try? await Task.sleep(nanoseconds: 220_000_000)
+                // Reduced artificial sleep for crossfade
+                try? await Task.sleep(nanoseconds: 50_000_000)
                 if !Task.isCancelled {
                     self.previousImage = nil
                     self.isCrossfading = false
@@ -325,10 +326,10 @@ struct SinglePhotoView: View {
             } else {
                 self.image = nsImage
             }
-            
-            try? await Task.sleep(nanoseconds: 150_000_000)
+
+            // Removed artificial sleep: try? await Task.sleep(nanoseconds: 150_000_000)
             await preloadNeighbors(maxPixelSize: target)
-            
+
         case .failure(let error):
             self.loadError = error
             print("Error loading full image: \(error.localizedDescription)")
@@ -469,11 +470,11 @@ struct NavigationArrow: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: direction == .left ? "chevron.left" : "chevron.right")
-                .font(.title)
-                .foregroundColor(.white)
-                .padding()
-                .background(Color.black.opacity(0.3))
-                .clipShape(Circle())
+            .font(.title)
+            .foregroundColor(.white)
+            .padding()
+            .background(Color.black.opacity(0.3))
+            .clipShape(Circle())
         }
         .buttonStyle(.plain)
     }
@@ -513,7 +514,7 @@ struct ScrollReader: NSViewRepresentable {
             if monitor != nil { return }
             monitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
                 guard let self = self, self.window != nil else { return event }
-                
+
                 let location = event.locationInWindow
                 let localPoint = self.convert(location, from: nil)
                 if self.bounds.contains(localPoint) {
@@ -534,7 +535,7 @@ struct ScrollReader: NSViewRepresentable {
                 self.monitor = nil
             }
         }
-        
+
         override func hitTest(_ point: NSPoint) -> NSView? {
             return nil
         }
