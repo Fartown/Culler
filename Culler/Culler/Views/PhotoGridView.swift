@@ -192,7 +192,7 @@ struct PhotoThumbnail: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
             // Layer 1: Image
-            AsyncThumbnailView(photo: photo, size: size)
+            AsyncThumbnailView(photo: photo, size: size, contentMode: .fill)
                 .frame(width: size, height: size)
                 .clipped()
                 .cornerRadius(4)

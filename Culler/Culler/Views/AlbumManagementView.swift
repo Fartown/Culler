@@ -215,7 +215,7 @@ struct AlbumDetailView: View {
                 ScrollView {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 8) {
                         ForEach(photos) { photo in
-                            AsyncThumbnailView(photo: photo, size: 100)
+                            AsyncThumbnailView(photo: photo, size: 100, contentMode: .fill)
                                 .frame(width: 100, height: 100)
                                 .cornerRadius(4)
                         }
