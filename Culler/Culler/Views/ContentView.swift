@@ -465,13 +465,17 @@ struct ContentView: View {
             Task {
                 await restoreFolderPermissionsAsync()
             }
-            UITestDataSeeder.seedIfNeeded(into: modelContext)
+            if UITestConfig.shouldResetDemoData {
+                UITestDataSeeder.reset(into: modelContext)
+            } else {
+                UITestDataSeeder.seedIfNeeded(into: modelContext)
+            }
         })
 
         view = AnyView(view.onAppear {
             if ProcessInfo.processInfo.arguments.contains("-e2e") {
                 Task { @MainActor in
-                    await runE2ESmoke()
+                    // 运行方式迁移到 E2ERunner（无界面依赖，便于 CI/本地命令行跑）
                 }
             }
         })
@@ -569,43 +573,6 @@ struct ContentView: View {
         if r == 0 { return 0 }
         for t in targets { if t.rating != r { return 0 } }
         return r
-    }
-
-    @MainActor
-    private func runE2ESmoke() async {
-        if photos.isEmpty {
-            UITestDataSeeder.seedIfNeeded(into: modelContext)
-        }
-
-        // wait one run loop for @Query refresh
-        try? await Task.sleep(nanoseconds: 150_000_000)
-
-        guard let first = displayedPhotosState.first else {
-            fatalError("E2E: no photos after seeding")
-        }
-
-        selectedPhotos = [first.id]
-        currentPhoto = first
-        viewMode = .single
-
-        applyFlag(.pick)
-        guard currentPhoto?.flag == .pick else { fatalError("E2E: flag not applied") }
-
-        applyRating(5)
-        guard currentPhoto?.rating == 5 else { fatalError("E2E: rating not applied") }
-
-        applyColorLabel(.red)
-        guard currentPhoto?.colorLabel == .red else { fatalError("E2E: color label not applied") }
-
-        UserDefaults.standard.set(true, forKey: "expandLibrary")
-        UserDefaults.standard.set(false, forKey: "expandAlbums")
-        UserDefaults.standard.set(2, forKey: "inspectorTabIndex")
-        let lib = UserDefaults.standard.bool(forKey: "expandLibrary")
-        let alb = UserDefaults.standard.bool(forKey: "expandAlbums")
-        let tab = UserDefaults.standard.integer(forKey: "inspectorTabIndex")
-        guard lib == true && alb == false && tab == 2 else { fatalError("E2E: preferences not persisted") }
-
-        NSApp.terminate(nil)
     }
 
     private func deleteNodeRecursively(_ node: FolderNode) {

@@ -1,6 +1,7 @@
 import SwiftUI
 import AVKit
 import Combine
+import Foundation
 
 struct VideoPlayerView: View {
     let photo: Photo
@@ -142,6 +143,9 @@ struct VideoPlayerView: View {
         let asset = AVAsset(url: url)
         if !asset.isPlayable {
             loadFailed = true
+            Task { @MainActor in
+                E2EProbe.recordVideoLoadFailed(photoID: photo.id)
+            }
             if didStart { url.stopAccessingSecurityScopedResource() }
             return
         }

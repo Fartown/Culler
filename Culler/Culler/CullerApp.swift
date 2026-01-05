@@ -1,29 +1,45 @@
 import SwiftUI
 import SwiftData
 
+final class CullerAppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        E2ERunner.startIfNeeded()
+    }
+}
+
 @main
 struct CullerApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Photo.self,
-            Album.self,
-            Tag.self,
-            ImportedFolder.self
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+    @NSApplicationDelegateAdaptor(CullerAppDelegate.self) private var appDelegate
 
+    private static let schema = Schema([
+        Photo.self,
+        Album.self,
+        Tag.self,
+        ImportedFolder.self
+    ])
+
+    let sharedModelContainer: ModelContainer
+
+    init() {
+        let inMemory = UITestConfig.isE2E
+        let modelConfiguration = ModelConfiguration(schema: Self.schema, isStoredInMemoryOnly: inMemory)
         do {
-            let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
-            return container
+            sharedModelContainer = try ModelContainer(for: Self.schema, configurations: [modelConfiguration])
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
-    }()
+    }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .preferredColorScheme(.dark)
+            Group {
+                if UITestConfig.isE2E {
+                    Text("E2E Running…")
+                } else {
+                    ContentView()
+                }
+            }
+            .preferredColorScheme(.dark)
         }
         .modelContainer(sharedModelContainer)
         .windowStyle(.hiddenTitleBar)

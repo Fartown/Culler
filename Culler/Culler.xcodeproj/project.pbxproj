@@ -38,12 +38,14 @@
 		031 /* WindowAccessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 134; };
 		032 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 135; };
 		033 /* VideoPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 136; };
+		034 /* E2ERunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 137; };
 		030 /* InspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 133; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		100 /* Culler.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Culler.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		101 /* CullerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CullerApp.swift; sourceTree = "<group>"; };
+		137 /* E2ERunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = E2ERunner.swift; sourceTree = "<group>"; };
 		102 /* Photo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Photo.swift; sourceTree = "<group>"; };
 		103 /* Album.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Album.swift; sourceTree = "<group>"; };
 		104 /* Tag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tag.swift; sourceTree = "<group>"; };
@@ -103,6 +105,7 @@
 			isa = PBXGroup;
 			children = (
 				101 /* CullerApp.swift */,
+				137 /* E2ERunner.swift */,
 				308 /* Testing */,
 				303 /* Models */,
 				304 /* Views */,
@@ -258,6 +261,7 @@
 				buildActionMask = 2147483647;
 				files = (
 					001 /* CullerApp.swift in Sources */,
+					034 /* E2ERunner.swift in Sources */,
 					002 /* Photo.swift in Sources */,
 					003 /* Album.swift in Sources */,
 					004 /* Tag.swift in Sources */,
