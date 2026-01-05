@@ -12,6 +12,7 @@ from typing import Iterable, List, Tuple
 
 ROOT = Path(__file__).resolve().parents[1]
 DOC_PATH = ROOT / "docs" / "功能说明与E2E.md"
+DEFAULT_LOG_PATH = ROOT / ".e2e.log"
 DEFAULT_TEST_ROOTS = [
     ROOT / "Culler",
 ]
@@ -28,8 +29,6 @@ class FeatureRow:
 TABLE_HEADER_RE = re.compile(r"^\|\s*功能ID\s*\|\s*功能名称\s*\|\s*当前行为（摘要）\s*\|\s*E2E 用例\s*\|\s*自动化\s*\|\s*$")
 TABLE_ROW_RE = re.compile(r"^\|\s*(F-\d+)\s*\|\s*([^|]+?)\s*\|\s*([^|]*?)\s*\|\s*(E2E-\d+)\s*\|\s*(Yes|No)\s*\|\s*$")
 
-# 为避免与示例图片名（例如 UITestSupport.swift 中的 "E2E-01.png"）冲突，
-# 这里要求用例实现必须显式打印或包含形如 "E2E_CASE:E2E-01" 的标记。
 E2E_CASE_MARK_RE = re.compile(r"\bE2E_CASE:(E2E-\d+)\b")
 
 
@@ -87,7 +86,7 @@ def iter_test_files(roots: Iterable[Path]) -> Iterable[Path]:
                     yield Path(dirpath) / fn
 
 
-def collect_e2e_cases_in_tests(roots: Iterable[Path]) -> Tuple[set[str], dict[str, List[str]]]:
+def collect_e2e_cases_in_code(roots: Iterable[Path]) -> Tuple[set[str], dict[str, List[str]]]:
     cases: set[str] = set()
     case_to_files: dict[str, List[str]] = {}
 
@@ -99,6 +98,13 @@ def collect_e2e_cases_in_tests(roots: Iterable[Path]) -> Tuple[set[str], dict[st
             case_to_files.setdefault(c, []).append(str(path.relative_to(ROOT)))
 
     return cases, case_to_files
+
+
+def collect_e2e_cases_in_log(log_path: Path) -> set[str]:
+    if not log_path.exists():
+        return set()
+    text = read_text(log_path)
+    return set(E2E_CASE_MARK_RE.findall(text))
 
 
 def compute_coverage(features: List[FeatureRow], implemented_cases: set[str]) -> Tuple[int, int, float, List[FeatureRow]]:
@@ -122,12 +128,18 @@ def main(argv: List[str]) -> int:
     threshold = 0.90
     output_json = False
     roots = list(DEFAULT_TEST_ROOTS)
+    log_path: Path | None = None
+    scan_code = False
 
     for arg in argv[1:]:
         if arg.startswith("--threshold="):
             threshold = float(arg.split("=", 1)[1])
         elif arg == "--json":
             output_json = True
+        elif arg == "--scan-code":
+            scan_code = True
+        elif arg.startswith("--log="):
+            log_path = ROOT / arg.split("=", 1)[1]
         elif arg.startswith("--root="):
             roots = [ROOT / arg.split("=", 1)[1]]
         else:
@@ -135,7 +147,22 @@ def main(argv: List[str]) -> int:
 
     doc = read_text(DOC_PATH)
     features = parse_feature_table(doc)
-    implemented_cases, case_to_files = collect_e2e_cases_in_tests(roots)
+
+    # Default behavior: prefer execution log if present; fallback to code scan.
+    source = "code"
+    case_to_files: dict[str, List[str]] = {}
+    if log_path is None:
+        log_path = DEFAULT_LOG_PATH
+    if log_path.exists():
+        implemented_cases = collect_e2e_cases_in_log(log_path)
+        source = f"log:{log_path.relative_to(ROOT)}"
+        # 如果用户显式要求，才进行代码扫描（用于“预期覆盖”或本地开发态对照）。
+        if scan_code and not implemented_cases:
+            implemented_cases, case_to_files = collect_e2e_cases_in_code(roots)
+            source = "code"
+    else:
+        implemented_cases, case_to_files = collect_e2e_cases_in_code(roots)
+        source = "code"
 
     covered, total, ratio, missing = compute_coverage(features, implemented_cases)
 
@@ -144,6 +171,7 @@ def main(argv: List[str]) -> int:
         "total": total,
         "coverage": ratio,
         "threshold": threshold,
+        "source": source,
         "missing": [
             {"id": f.feature_id, "name": f.name, "e2e": f.e2e_case, "automated": f.automated}
             for f in missing
