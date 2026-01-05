@@ -2,7 +2,6 @@ import Foundation
 import SwiftData
 import AppKit
 import AVFoundation
-import Darwin
 
 @MainActor
 enum E2ERunner {
@@ -39,17 +38,44 @@ enum E2ERunner {
     private static func fail(_ message: String) -> Never {
         print("E2E_RESULT:FAIL \(message)")
         fflush(stdout)
-        exit(1)
+        NSApp.terminate(nil)
+        // Fallback: if terminate doesn't exit for some reason, hard-exit.
+        Foundation.exit(1)
     }
 
     private static func pass() -> Never {
         print("E2E_RESULT:PASS")
         fflush(stdout)
-        exit(0)
+        NSApp.terminate(nil)
+        // Fallback: if terminate doesn't exit for some reason, hard-exit.
+        Foundation.exit(0)
+    }
+
+    private struct TimeoutError: Error {}
+
+    private static func withTimeout<T>(
+        seconds: Double,
+        operation: @escaping @Sendable () async throws -> T
+    ) async throws -> T {
+        try await withThrowingTaskGroup(of: T.self) { group in
+            group.addTask {
+                try await operation()
+            }
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                throw TimeoutError()
+            }
+            let result = try await group.next()!
+            group.cancelAll()
+            return result
+        }
     }
 
     static func run() async {
         do {
+            print("E2E_START")
+            fflush(stdout)
+
             let schema = Schema([Photo.self, Album.self, Tag.self, ImportedFolder.self])
             let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
             let container = try ModelContainer(for: schema, configurations: [config])
@@ -107,13 +133,15 @@ enum E2ERunner {
             _ = UITestDataSeeder.createAdditionalDemoImage(named: "E2E-SYNC-01", color: .systemBrown)
             let photosBeforeSync = (try? modelContext.fetch(FetchDescriptor<Photo>())) ?? []
             let importedFolders = (try? modelContext.fetch(FetchDescriptor<ImportedFolder>())) ?? []
-            let summary = try await FolderSyncService.sync(
-                folderPath: folderPath,
-                photos: photosBeforeSync,
-                importedFolders: importedFolders,
-                modelContext: modelContext,
-                progress: nil
-            )
+            let summary = try await withTimeout(seconds: 20) {
+                try await FolderSyncService.sync(
+                    folderPath: folderPath,
+                    photos: photosBeforeSync,
+                    importedFolders: importedFolders,
+                    modelContext: modelContext,
+                    progress: nil
+                )
+            }
             guard summary.folderPath == folderPath else { fail("sync summary folder mismatch") }
             guard summary.addedCount >= 1 else { fail("sync did not add") }
 
@@ -146,7 +174,7 @@ enum E2ERunner {
             guard badPhoto.isVideo else { fail("bad video not recognized as video") }
 
             let asset = AVAsset(url: badVideoURL)
-            let isPlayable = (try? await asset.load(.isPlayable)) ?? false
+            let isPlayable = (try? await withTimeout(seconds: 10) { try await asset.load(.isPlayable) }) ?? false
             if !isPlayable {
                 E2EProbe.recordVideoLoadFailed(photoID: badPhoto.id)
             }

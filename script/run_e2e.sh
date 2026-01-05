@@ -34,6 +34,11 @@ EXIT_CODE=$?
 set -e
 
 echo "[3/3] Parse results"
+if ! rg -n "^E2E_START$" "$ROOT/.e2e.log" >/dev/null 2>&1; then
+  echo "E2E did not start (missing E2E_START). Tail of .e2e.log:" >&2
+  tail -n 120 "$ROOT/.e2e.log" >&2 || true
+  exit 1
+fi
 if ! rg -n "^E2E_RESULT:PASS$" "$ROOT/.e2e.log" >/dev/null 2>&1; then
   echo "E2E did not report PASS. Tail of .e2e.log:" >&2
   tail -n 120 "$ROOT/.e2e.log" >&2 || true
