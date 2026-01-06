@@ -11,8 +11,16 @@ enum UITestConfig {
         ProcessInfo.processInfo.arguments.contains("-ui-testing-reset")
     }
 
-    static var isE2E: Bool {
+    static var isE2EHeadless: Bool {
         ProcessInfo.processInfo.arguments.contains("-e2e")
+    }
+
+    static var isE2EUI: Bool {
+        ProcessInfo.processInfo.arguments.contains("-e2e-ui")
+    }
+
+    static var isAnyE2E: Bool {
+        isE2EHeadless || isE2EUI
     }
 }
 
@@ -31,19 +39,19 @@ enum E2EProbe {
     }
 
     @MainActor static func recordRotation(degrees: Int) {
-        guard UITestConfig.isE2E else { return }
+        guard UITestConfig.isAnyE2E else { return }
         rotationDegrees = degrees
     }
 
     @MainActor static func recordVideoLoadFailed(photoID: UUID) {
-        guard UITestConfig.isE2E else { return }
+        guard UITestConfig.isAnyE2E else { return }
         videoLoadFailedPhotoID = photoID
     }
 }
 
 enum UITestDataSeeder {
     static func seedIfNeeded(into modelContext: ModelContext) {
-        guard UITestConfig.isEnabled || UITestConfig.isE2E else { return }
+        guard UITestConfig.isEnabled || UITestConfig.isAnyE2E else { return }
 
         let existingCount = (try? modelContext.fetchCount(FetchDescriptor<Photo>())) ?? 0
         if existingCount > 0 { return }

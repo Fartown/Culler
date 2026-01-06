@@ -21,7 +21,7 @@ struct CullerApp: App {
     let sharedModelContainer: ModelContainer
 
     init() {
-        let inMemory = UITestConfig.isE2E
+        let inMemory = UITestConfig.isE2EHeadless
         let modelConfiguration = ModelConfiguration(schema: Self.schema, isStoredInMemoryOnly: inMemory)
         do {
             sharedModelContainer = try ModelContainer(for: Self.schema, configurations: [modelConfiguration])
@@ -33,7 +33,7 @@ struct CullerApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if UITestConfig.isE2E {
+                if UITestConfig.isE2EHeadless {
                     Text("E2E Running…")
                 } else {
                     ContentView()

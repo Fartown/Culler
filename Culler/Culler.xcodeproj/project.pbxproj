@@ -39,13 +39,27 @@
 		032 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 135; };
 		033 /* VideoPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 136; };
 		034 /* E2ERunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 137; };
+		035 /* CullerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 138; };
 		030 /* InspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 133; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		431 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 600 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 400 /* Culler */;
+			remoteInfo = Culler;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		100 /* Culler.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Culler.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		101 /* CullerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CullerApp.swift; sourceTree = "<group>"; };
+		124 /* CullerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CullerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		137 /* E2ERunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = E2ERunner.swift; sourceTree = "<group>"; };
+		138 /* CullerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CullerUITests.swift; sourceTree = "<group>"; };
+		139 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		102 /* Photo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Photo.swift; sourceTree = "<group>"; };
 		103 /* Album.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Album.swift; sourceTree = "<group>"; };
 		104 /* Tag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tag.swift; sourceTree = "<group>"; };
@@ -90,6 +104,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
         
+		420 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -97,6 +118,7 @@
             isa = PBXGroup;
             children = (
                 301 /* Culler */,
+                309 /* CullerUITests */,
                 302 /* Products */,
             );
             sourceTree = "<group>";
@@ -191,6 +213,15 @@
 				sourceTree = "<group>";
 			};
         
+		309 /* CullerUITests */ = {
+			isa = PBXGroup;
+			children = (
+				138 /* CullerUITests.swift */,
+				139 /* Info.plist */,
+			);
+			path = CullerUITests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -211,6 +242,25 @@
 			productReference = 100 /* Culler.app */;
 			productType = "com.apple.product-type.application";
 		};
+
+		410 /* CullerUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 510;
+			buildPhases = (
+				422 /* Sources */,
+				420 /* Frameworks */,
+				421 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				430 /* PBXTargetDependency */,
+			);
+			name = CullerUITests;
+			productName = CullerUITests;
+			productReference = 124 /* CullerUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -223,6 +273,10 @@
 				TargetAttributes = {
 					400 = {
 						CreatedOnToolsVersion = 15.0;
+					};
+					410 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = 400;
 					};
 				};
 			};
@@ -240,6 +294,7 @@
 			projectRoot = "";
 			targets = (
                 400 /* Culler */,
+                410 /* CullerUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -250,6 +305,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				016 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+
+		421 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -295,8 +358,25 @@
 				);
 				runOnlyForDeploymentPostprocessing = 0;
 			};
+
+			422 /* Sources */ = {
+				isa = PBXSourcesBuildPhase;
+				buildActionMask = 2147483647;
+				files = (
+					035 /* CullerUITests.swift in Sources */,
+				);
+				runOnlyForDeploymentPostprocessing = 0;
+			};
         
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		430 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 400 /* Culler */;
+			targetProxy = 431 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		700 /* Debug */ = {
@@ -467,6 +547,36 @@
 			};
 			name = Release;
 		};
+
+		704 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = CullerUITests/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.culler.app.CullerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = Culler;
+			};
+			name = Debug;
+		};
+
+		705 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = CullerUITests/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.culler.app.CullerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = Culler;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -485,6 +595,16 @@
 			buildConfigurations = (
 				700 /* Debug */,
 				701 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+
+		510 = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				704 /* Debug */,
+				705 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

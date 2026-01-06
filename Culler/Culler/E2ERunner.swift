@@ -21,7 +21,7 @@ enum E2ERunner {
     private static var didStart = false
 
     static func startIfNeeded() {
-        guard UITestConfig.isE2E else { return }
+        guard UITestConfig.isAnyE2E else { return }
         guard !didStart else { return }
         didStart = true
 

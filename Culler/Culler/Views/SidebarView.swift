@@ -324,6 +324,7 @@ struct SidebarView: View {
                     }
                     .buttonStyle(.plain)
                     .help("清除所有筛选")
+                    .accessibilityIdentifier("sidebar_clear_filters")
                 }
             }
         }
@@ -337,6 +338,7 @@ struct SidebarView: View {
                     Image(systemName: "square.and.arrow.down")
                     Text("导入照片")
                         .fontWeight(.medium)
+                        .accessibilityIdentifier("sidebar_import_button")
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)

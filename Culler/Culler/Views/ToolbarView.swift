@@ -38,6 +38,7 @@ struct ToolbarView: View {
             Text("\(photoCount) 张")
                 .foregroundColor(.secondary)
                 .font(.system(size: 13))
+                .accessibilityIdentifier("toolbar_photo_count")
 
             if selectedCount > 0 {
                 Text("• 已选 \(selectedCount)")
