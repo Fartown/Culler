@@ -35,6 +35,12 @@ enum E2ERunner {
         fflush(stdout)
     }
 
+    private static func e2eUIPauseSeconds() -> Double {
+        guard UITestConfig.isE2EUI else { return 0 }
+        let env = ProcessInfo.processInfo.environment["E2E_UI_PAUSE_SECONDS"] ?? "0"
+        return Double(env) ?? 0
+    }
+
     private static func fail(_ message: String) -> Never {
         print("E2E_RESULT:FAIL \(message)")
         fflush(stdout)
@@ -75,6 +81,13 @@ enum E2ERunner {
         do {
             print("E2E_START")
             fflush(stdout)
+
+            let pauseSeconds = e2eUIPauseSeconds()
+            if pauseSeconds > 0 {
+                print("E2E_UI_PAUSE_SECONDS:\(pauseSeconds)")
+                fflush(stdout)
+                try? await Task.sleep(nanoseconds: UInt64(pauseSeconds * 1_000_000_000))
+            }
 
             let schema = Schema([Photo.self, Album.self, Tag.self, ImportedFolder.self])
             let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)

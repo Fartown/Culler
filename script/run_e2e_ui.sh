@@ -28,7 +28,7 @@ fi
 
 echo "[2/2] Run E2E UI (visible app launch)"
 set +e
-"$BIN" -e2e-ui -ui-testing-reset -ui-testing >"$ROOT/.e2e-ui.log" 2>&1
+E2E_UI_PAUSE_SECONDS="${E2E_UI_PAUSE_SECONDS:-2}" "$BIN" -e2e-ui -ui-testing-reset -ui-testing >"$ROOT/.e2e-ui.log" 2>&1
 EXIT_CODE=$?
 set -e
 
@@ -50,4 +50,3 @@ fi
 
 echo "E2E UI run succeeded. Tail of .e2e-ui.log:"
 tail -n 40 "$ROOT/.e2e-ui.log"
-
