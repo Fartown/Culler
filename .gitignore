@@ -21,3 +21,4 @@ xcuserdata/
 build.log
 .derivedData
 .derivedData-e2e/
+.derivedData-*/
