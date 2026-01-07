@@ -355,6 +355,10 @@ struct ContentView: View {
                 .frame(minWidth: 900, minHeight: 600)
         })
 
+        view = AnyView(view.onReceive(NotificationCenter.default.publisher(for: UITestNotifications.openAlbumManager)) { _ in
+            showAlbumManager = true
+        })
+
         view = AnyView(view.sheet(isPresented: $showSyncErrorSheet) {
             ImportErrorView(errors: syncErrors) {
                 showSyncErrorSheet = false

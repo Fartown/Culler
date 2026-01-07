@@ -150,6 +150,13 @@ struct PanelCommands: Commands {
                 NotificationCenter.default.post(name: .toggleRightPanel, object: nil)
             }
             .keyboardShortcut("]", modifiers: [.command, .shift])
+
+            Divider()
+
+            Button("相册与标签管理") {
+                NotificationCenter.default.post(name: UITestNotifications.openAlbumManager, object: nil)
+            }
+            .keyboardShortcut("a", modifiers: [.command, .shift])
         }
     }
 }

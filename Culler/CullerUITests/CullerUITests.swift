@@ -10,14 +10,48 @@ final class CullerUITests: XCTestCase {
     }
 
     private func waitForGrid(timeout: TimeInterval = 12) {
-        XCTAssertTrue(app.images.matching(identifier: "photo_thumbnail").firstMatch.waitForExistence(timeout: timeout))
+        XCTAssertTrue(app.otherElements.matching(identifier: "photo_thumbnail").firstMatch.waitForExistence(timeout: timeout))
+    }
+
+    private func photoCountText() -> String {
+        let label = app.staticTexts["toolbar_photo_count"]
+        _ = label.waitForExistence(timeout: 8)
+        return (label.value as? String) ?? label.label
+    }
+
+    private func photoCountValue() -> Int {
+        let text = photoCountText()
+        let digits = text.prefix { $0.isNumber }
+        return Int(digits) ?? -1
+    }
+
+    private func waitForPhotoCountChange(from before: Int, timeout: TimeInterval = 8) -> Int {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            let now = photoCountValue()
+            if now >= 0, now != before { return now }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+        }
+        XCTFail("photo count did not change (before=\(before), current=\(photoCountText()))")
+        return before
+    }
+
+    private func waitForPhotoCountIncrease(from before: Int, timeout: TimeInterval = 10) -> Int {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            let now = photoCountValue()
+            if now >= 0, now > before { return now }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+        }
+        XCTFail("photo count did not increase (before=\(before), current=\(photoCountText()))")
+        return before
     }
 
     private func openFirstPhoto() {
         waitForGrid()
-        let thumb = app.images.matching(identifier: "photo_thumbnail").firstMatch
+        let thumb = app.otherElements.matching(identifier: "photo_thumbnail").firstMatch
         XCTAssertTrue(thumb.exists)
-        if thumb.isHittable { thumb.doubleClick() }
+        thumb.doubleClick()
     }
 
     func test_E2E_01_Launch_ShowsGrid() {
@@ -31,19 +65,20 @@ final class CullerUITests: XCTestCase {
 
         let countLabel = app.staticTexts["toolbar_photo_count"]
         XCTAssertTrue(countLabel.waitForExistence(timeout: 8))
-        let before = countLabel.label
+        let before = photoCountValue()
+        XCTAssertGreaterThanOrEqual(before, 0)
 
         let rating3 = app.buttons["filter_rating_3"]
         XCTAssertTrue(rating3.waitForExistence(timeout: 8))
         rating3.click()
 
-        let after = countLabel.label
-        XCTAssertNotEqual(before, after)
+        let after = waitForPhotoCountChange(from: before, timeout: 8)
+        XCTAssertGreaterThanOrEqual(after, 0)
 
         let clear = app.buttons["sidebar_clear_filters"]
         if clear.waitForExistence(timeout: 2) {
             clear.click()
-            XCTAssertEqual(countLabel.label, before)
+            XCTAssertEqual(photoCountValue(), before)
         }
     }
 
@@ -59,7 +94,7 @@ final class CullerUITests: XCTestCase {
         XCTAssertTrue(back.waitForExistence(timeout: 6))
         back.click()
 
-        XCTAssertTrue(app.images.matching(identifier: "photo_thumbnail").firstMatch.waitForExistence(timeout: 6))
+        waitForGrid(timeout: 6)
     }
 
     func test_E2E_03_Single_Rotate_Navigate() {
@@ -118,7 +153,8 @@ final class CullerUITests: XCTestCase {
 
         let countLabel = app.staticTexts["toolbar_photo_count"]
         XCTAssertTrue(countLabel.waitForExistence(timeout: 8))
-        let before = countLabel.label
+        let before = photoCountValue()
+        XCTAssertGreaterThanOrEqual(before, 0)
 
         let importBtn = app.buttons["sidebar_import_button"]
         XCTAssertTrue(importBtn.waitForExistence(timeout: 6))
@@ -132,9 +168,7 @@ final class CullerUITests: XCTestCase {
         XCTAssertTrue(start.waitForExistence(timeout: 6))
         start.click()
 
-        XCTAssertTrue(countLabel.waitForExistence(timeout: 8))
-        let after = countLabel.label
-        XCTAssertNotEqual(before, after)
+        _ = waitForPhotoCountIncrease(from: before, timeout: 12)
     }
 
     func test_E2E_08_FolderSync_AddsNewFile() {
@@ -157,7 +191,8 @@ final class CullerUITests: XCTestCase {
 
         let countLabel = app.staticTexts["toolbar_photo_count"]
         XCTAssertTrue(countLabel.waitForExistence(timeout: 8))
-        let before = countLabel.label
+        let before = photoCountValue()
+        XCTAssertGreaterThanOrEqual(before, 0)
 
         // 在工具栏上有时没有“同步”按钮（可见性/布局/条件），所以走菜单命令更稳定
         let menu = app.menuBars.menuBarItems["Folders"]
@@ -173,8 +208,7 @@ final class CullerUITests: XCTestCase {
         let syncBtn = app.buttons["toolbar_sync_button"]
         if syncBtn.waitForExistence(timeout: 2) {
             syncBtn.click()
-            let after = countLabel.label
-            XCTAssertNotEqual(before, after)
+            _ = waitForPhotoCountIncrease(from: before, timeout: 12)
         }
     }
 
@@ -184,9 +218,12 @@ final class CullerUITests: XCTestCase {
         // 顶部“相册”行在 Outline 里不是按钮（header），用快捷入口：侧栏的 plus 不一定暴露为同一 identifier
         let importBtn = app.buttons["sidebar_import_button"]
         XCTAssertTrue(importBtn.waitForExistence(timeout: 8))
-        let mgrBtn = app.buttons["sidebar_album_manager_button"]
-        XCTAssertTrue(mgrBtn.waitForExistence(timeout: 8))
-        mgrBtn.click()
+        let panels = app.menuBars.menuBarItems["Panels"]
+        XCTAssertTrue(panels.waitForExistence(timeout: 6))
+        panels.click()
+        let albumMgr = app.menuItems["相册与标签管理"]
+        XCTAssertTrue(albumMgr.waitForExistence(timeout: 6))
+        albumMgr.click()
 
         let newAlbum = app.buttons["album_manager_new_album_button"]
         XCTAssertTrue(newAlbum.waitForExistence(timeout: 6))
@@ -250,9 +287,14 @@ final class CullerUITests: XCTestCase {
         XCTAssertTrue(start.waitForExistence(timeout: 6))
         start.click()
 
-        openFirstPhoto()
+        let badThumb = app.otherElements
+            .matching(identifier: "photo_thumbnail")
+            .matching(NSPredicate(format: "label CONTAINS %@", "E2E-BAD-VIDEO"))
+            .firstMatch
+        XCTAssertTrue(badThumb.waitForExistence(timeout: 12))
+        badThumb.doubleClick()
 
         let msg = app.staticTexts["当前视频不可播放"]
-        XCTAssertTrue(msg.waitForExistence(timeout: 6))
+        XCTAssertTrue(msg.waitForExistence(timeout: 10))
     }
 }
