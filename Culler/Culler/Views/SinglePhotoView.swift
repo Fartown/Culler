@@ -135,6 +135,7 @@ struct SinglePhotoView: View {
                                 .clipShape(Circle())
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("single_back_button")
 
                         Spacer()
 
@@ -144,6 +145,7 @@ struct SinglePhotoView: View {
                             .padding(.vertical, 6)
                             .background(Color.black.opacity(0.5))
                             .cornerRadius(4)
+                            .accessibilityIdentifier("single_index_label")
 
                         Spacer()
 
@@ -479,6 +481,7 @@ struct NavigationArrow: View {
             .clipShape(Circle())
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(direction == .left ? "single_prev_button" : "single_next_button")
     }
 }
 

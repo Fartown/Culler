@@ -63,6 +63,7 @@ struct ToolbarView: View {
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
+                    .accessibilityIdentifier("toolbar_sync_button")
                 }
 
                 Menu {
@@ -104,6 +105,7 @@ struct ToolbarView: View {
                     .layoutPriority(1)
                 }
                 .menuStyle(.borderlessButton)
+                .accessibilityIdentifier("toolbar_sort_menu")
 
                 HStack(spacing: 6) {
                     Button {
@@ -135,6 +137,7 @@ struct ToolbarView: View {
                                 .foregroundColor(.secondary)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("toolbar_rotate_left")
 
                         Button {
                             NotificationCenter.default.post(name: .rotateRight, object: nil)
@@ -144,6 +147,7 @@ struct ToolbarView: View {
                                 .foregroundColor(.secondary)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("toolbar_rotate_right")
                     }
                 }
 

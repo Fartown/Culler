@@ -37,45 +37,51 @@ struct SidebarFiltersView: View {
             // 第二行：评分
             HStack(spacing: 4) {
                 ForEach(1...5, id: \.self) { star in
-                    Image(systemName: star <= filterRating ? "star.fill" : "star")
-                        .font(.system(size: 13))
-                        .foregroundColor(star <= filterRating ? .yellow : .secondary.opacity(0.4))
-                        .onTapGesture {
-                            if filterRating == star {
-                                filterRating = 0
-                            } else {
-                                filterRating = star
-                            }
+                    Button {
+                        if filterRating == star {
+                            filterRating = 0
+                        } else {
+                            filterRating = star
                         }
-                        .frame(width: 24, height: 24)
-                        .contentShape(Rectangle())
+                    } label: {
+                        Image(systemName: star <= filterRating ? "star.fill" : "star")
+                            .font(.system(size: 13))
+                            .foregroundColor(star <= filterRating ? .yellow : .secondary.opacity(0.4))
+                            .frame(width: 24, height: 24)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("filter_rating_\(star)")
                 }
             }
 
             // 第三行：颜色标签
             HStack(spacing: 4) {
                 ForEach(ColorLabel.allCases.filter { $0 != .none }, id: \.rawValue) { label in
-                    ZStack {
-                        Circle()
-                            .fill(Color(label.color))
-                            .frame(width: 12, height: 12)
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.white, lineWidth: filterColorLabel == label ? 2 : 0)
-                            )
-                    }
-                    .frame(width: 24, height: 24)
-                    .contentShape(Circle())
-                    .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 1)
-                    .onTapGesture {
+                    Button {
                         if filterColorLabel == label {
                             filterColorLabel = nil
                         } else {
                             filterColorLabel = label
                         }
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .fill(Color(label.color))
+                                .frame(width: 12, height: 12)
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white, lineWidth: filterColorLabel == label ? 2 : 0)
+                                )
+                        }
+                        .frame(width: 24, height: 24)
+                        .contentShape(Circle())
+                        .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 1)
                     }
+                    .buttonStyle(.plain)
                     .scaleEffect(filterColorLabel == label ? 1.2 : 1.0)
                     .animation(.spring(response: 0.3), value: filterColorLabel)
+                    .accessibilityIdentifier("filter_color_\(label.rawValue)")
                 }
             }
         }
@@ -131,6 +137,13 @@ private struct FlagIcon: View {
         }
         .buttonStyle(.plain)
         .help(flagName)
+        .accessibilityIdentifier({
+            switch flag {
+            case .pick: return "filter_flag_pick"
+            case .reject: return "filter_flag_reject"
+            case .none: return "filter_flag_none"
+            }
+        }())
     }
     
     var flagName: String {
@@ -297,6 +310,7 @@ struct SidebarView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundColor(.secondary)
+                .accessibilityIdentifier("sidebar_album_manager_button")
             }
         }
     }

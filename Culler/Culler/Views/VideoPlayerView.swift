@@ -149,6 +149,23 @@ struct VideoPlayerView: View {
             if didStart { url.stopAccessingSecurityScopedResource() }
             return
         }
+
+        // XCUITest 下（尤其是 UI 自动化环境），某些“后缀是视频但内容不可播放”的文件
+        // `isPlayable` 可能返回 true，但后续实际无法播放。这里提前用 async load 做一次兜底检查。
+        if UITestConfig.isEnabled || UITestConfig.isAnyE2E {
+            Task { @MainActor in
+                do {
+                    let playable = try await asset.load(.isPlayable)
+                    if !playable {
+                        loadFailed = true
+                        E2EProbe.recordVideoLoadFailed(photoID: photo.id)
+                    }
+                } catch {
+                    loadFailed = true
+                    E2EProbe.recordVideoLoadFailed(photoID: photo.id)
+                }
+            }
+        }
         let item = AVPlayerItem(asset: asset)
         let p = AVPlayer(playerItem: item)
         p.volume = 1.0
