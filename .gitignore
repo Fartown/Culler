@@ -25,3 +25,4 @@ build.log
 .derivedData-*
 .xcresult-*/
 .xcresult*
+.xcui*
