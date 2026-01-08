@@ -4,9 +4,26 @@ final class CullerUITests: XCTestCase {
     private var app: XCUIApplication!
 
     override func setUp() {
+        super.setUp()
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-ui-testing", "-ui-testing-reset"]
+        app.launchArguments = [
+            "-ApplePersistenceIgnoreState", "YES",
+            "-NSQuitAlwaysKeepsWindows", "NO",
+            "-ui-testing", "-ui-testing-reset"
+        ]
+    }
+
+    override func tearDown() {
+        app?.terminate()
+        app = nil
+        super.tearDown()
+    }
+
+    private func launchApp() {
+        app.launch()
+        app.activate()
+        RunLoop.current.run(until: Date().addingTimeInterval(0.2))
     }
 
     private func waitForGrid(timeout: TimeInterval = 12) {
@@ -16,21 +33,49 @@ final class CullerUITests: XCTestCase {
     private func photoCountText() -> String {
         let label = app.staticTexts["toolbar_photo_count"]
         _ = label.waitForExistence(timeout: 8)
-        return (label.value as? String) ?? label.label
+        let labelText = label.label
+        let valueText = stringOrEmpty(label.value)
+        return preferNonEmpty(labelText, valueText)
     }
 
     private func photoCountValue() -> Int {
-        let text = photoCountText()
-        let digits = text.prefix { $0.isNumber }
-        return Int(digits) ?? -1
+        parsePhotoCount(photoCountText())
+    }
+
+    private func stringOrEmpty(_ value: Any?) -> String {
+        if let text = value as? String { return text }
+        return ""
+    }
+
+    private func preferNonEmpty(_ primary: String, _ fallback: String) -> String {
+        primary.isEmpty ? fallback : primary
+    }
+
+    private func parsePhotoCount(_ text: String) -> Int {
+        var startIndex: String.Index?
+        var endIndex: String.Index?
+        for index in text.indices {
+            if text[index].isNumber {
+                if startIndex == nil { startIndex = index }
+                endIndex = text.index(after: index)
+            } else if startIndex != nil {
+                break
+            }
+        }
+
+        guard let startIndex, let endIndex else { return -1 }
+        let digits = text[startIndex..<endIndex]
+        guard let value = Int(digits) else { return -1 }
+        return value
     }
 
     private func waitForPhotoCountChange(from before: Int, timeout: TimeInterval = 8) -> Int {
         let deadline = Date().addingTimeInterval(timeout)
-        while Date() < deadline {
+        while true {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+            if Date() >= deadline { break }
             let now = photoCountValue()
             if now >= 0, now != before { return now }
-            RunLoop.current.run(until: Date().addingTimeInterval(0.2))
         }
         XCTFail("photo count did not change (before=\(before), current=\(photoCountText()))")
         return before
@@ -38,10 +83,11 @@ final class CullerUITests: XCTestCase {
 
     private func waitForPhotoCountIncrease(from before: Int, timeout: TimeInterval = 10) -> Int {
         let deadline = Date().addingTimeInterval(timeout)
-        while Date() < deadline {
+        while true {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+            if Date() >= deadline { break }
             let now = photoCountValue()
             if now >= 0, now > before { return now }
-            RunLoop.current.run(until: Date().addingTimeInterval(0.2))
         }
         XCTFail("photo count did not increase (before=\(before), current=\(photoCountText()))")
         return before
@@ -55,35 +101,36 @@ final class CullerUITests: XCTestCase {
     }
 
     func test_E2E_01_Launch_ShowsGrid() {
-        app.launch()
+        launchApp()
 
         waitForGrid()
     }
 
     func test_E2E_05_Filter_Rating_ChangesCount() {
-        app.launch()
+        launchApp()
+
+        waitForGrid()
 
         let countLabel = app.staticTexts["toolbar_photo_count"]
         XCTAssertTrue(countLabel.waitForExistence(timeout: 8))
         let before = photoCountValue()
         XCTAssertGreaterThanOrEqual(before, 0)
 
-        let rating3 = app.buttons["filter_rating_3"]
-        XCTAssertTrue(rating3.waitForExistence(timeout: 8))
-        rating3.click()
+        XCTAssertTrue(app.buttons["filter_rating_3"].waitForExistence(timeout: 8))
+        app.buttons["filter_rating_3"].click()
 
         let after = waitForPhotoCountChange(from: before, timeout: 8)
         XCTAssertGreaterThanOrEqual(after, 0)
 
-        let clear = app.buttons["sidebar_clear_filters"]
-        if clear.waitForExistence(timeout: 2) {
-            clear.click()
-            XCTAssertEqual(photoCountValue(), before)
-        }
+        // 再次点击同一颗星会清除评分筛选（无需依赖“清除筛选”按钮存在/可见）
+        XCTAssertTrue(app.buttons["filter_rating_3"].waitForExistence(timeout: 8))
+        app.buttons["filter_rating_3"].click()
+        let restored = waitForPhotoCountChange(from: after, timeout: 8)
+        XCTAssertEqual(restored, before)
     }
 
     func test_E2E_02_Grid_To_Single_And_Back() {
-        app.launch()
+        launchApp()
 
         openFirstPhoto()
 
@@ -98,7 +145,7 @@ final class CullerUITests: XCTestCase {
     }
 
     func test_E2E_03_Single_Rotate_Navigate() {
-        app.launch()
+        launchApp()
 
         openFirstPhoto()
 
@@ -116,7 +163,7 @@ final class CullerUITests: XCTestCase {
     }
 
     func test_E2E_04_Marking_Toolbar_Applies() {
-        app.launch()
+        launchApp()
 
         openFirstPhoto()
 
@@ -134,7 +181,7 @@ final class CullerUITests: XCTestCase {
     }
 
     func test_E2E_06_Sort_Menu_Changes() {
-        app.launch()
+        launchApp()
 
         let sortMenu = app.menuButtons["toolbar_sort_menu"]
         XCTAssertTrue(sortMenu.waitForExistence(timeout: 8))
@@ -149,7 +196,7 @@ final class CullerUITests: XCTestCase {
     }
 
     func test_E2E_07_Import_AddsPhotos() {
-        app.launch()
+        launchApp()
 
         let countLabel = app.staticTexts["toolbar_photo_count"]
         XCTAssertTrue(countLabel.waitForExistence(timeout: 8))
@@ -172,7 +219,7 @@ final class CullerUITests: XCTestCase {
     }
 
     func test_E2E_08_FolderSync_AddsNewFile() {
-        app.launch()
+        launchApp()
 
         let importBtn = app.buttons["sidebar_import_button"]
         XCTAssertTrue(importBtn.waitForExistence(timeout: 6))
@@ -213,7 +260,7 @@ final class CullerUITests: XCTestCase {
     }
 
     func test_E2E_09_Album_Tag_Management() {
-        app.launch()
+        launchApp()
 
         // 顶部“相册”行在 Outline 里不是按钮（header），用快捷入口：侧栏的 plus 不一定暴露为同一 identifier
         let importBtn = app.buttons["sidebar_import_button"]
@@ -261,7 +308,7 @@ final class CullerUITests: XCTestCase {
     }
 
     func test_E2E_10_Inspector_Shows_Info() {
-        app.launch()
+        launchApp()
 
         openFirstPhoto()
 
@@ -273,7 +320,7 @@ final class CullerUITests: XCTestCase {
     }
 
     func test_E2E_11_Video_Fallback_Message() {
-        app.launch()
+        launchApp()
 
         let importBtn = app.buttons["sidebar_import_button"]
         XCTAssertTrue(importBtn.waitForExistence(timeout: 6))
@@ -296,5 +343,33 @@ final class CullerUITests: XCTestCase {
 
         let msg = app.staticTexts["当前视频不可播放"]
         XCTAssertTrue(msg.waitForExistence(timeout: 10))
+    }
+
+    func test_Coverage_ExpectedTimeoutPaths() {
+        launchApp()
+
+        let originalContinueAfterFailure = continueAfterFailure
+        continueAfterFailure = true
+        defer { continueAfterFailure = originalContinueAfterFailure }
+
+        waitForGrid()
+        XCTAssertTrue(app.staticTexts["toolbar_photo_count"].waitForExistence(timeout: 8))
+        let before = photoCountValue()
+        XCTAssertGreaterThanOrEqual(before, 0)
+
+        XCTAssertEqual(stringOrEmpty(nil), "")
+        XCTAssertEqual(stringOrEmpty(123), "")
+        XCTAssertEqual(stringOrEmpty("abc"), "abc")
+
+        XCTAssertEqual(preferNonEmpty("", "fallback"), "fallback")
+        XCTAssertEqual(preferNonEmpty("primary", "fallback"), "primary")
+
+        XCTAssertEqual(parsePhotoCount(""), -1)
+        XCTAssertEqual(parsePhotoCount("abc"), -1)
+        XCTAssertEqual(parsePhotoCount("12 张"), 12)
+        XCTAssertEqual(parsePhotoCount("共 12 张"), 12)
+
+        XCTExpectFailure("覆盖 waitForPhotoCountChange 的超时失败路径") { _ = waitForPhotoCountChange(from: before, timeout: 0) }
+        XCTExpectFailure("覆盖 waitForPhotoCountIncrease 的超时失败路径") { _ = waitForPhotoCountIncrease(from: Int.max, timeout: 0.2) }
     }
 }
