@@ -6,6 +6,22 @@ enum UITestConfig {
     static var isEnabled: Bool {
         ProcessInfo.processInfo.arguments.contains("-ui-testing")
     }
+
+    static var shouldResetDemoData: Bool {
+        ProcessInfo.processInfo.arguments.contains("-ui-testing-reset")
+    }
+
+    static var isE2EHeadless: Bool {
+        ProcessInfo.processInfo.arguments.contains("-e2e")
+    }
+
+    static var isE2EUI: Bool {
+        ProcessInfo.processInfo.arguments.contains("-e2e-ui")
+    }
+
+    static var isAnyE2E: Bool {
+        isE2EHeadless || isE2EUI
+    }
 }
 
 enum UITestNotifications {
@@ -13,9 +29,29 @@ enum UITestNotifications {
     static let resetDemoData = Notification.Name("resetDemoData")
 }
 
+enum E2EProbe {
+    @MainActor private(set) static var rotationDegrees: Int?
+    @MainActor private(set) static var videoLoadFailedPhotoID: UUID?
+
+    @MainActor static func reset() {
+        rotationDegrees = nil
+        videoLoadFailedPhotoID = nil
+    }
+
+    @MainActor static func recordRotation(degrees: Int) {
+        guard UITestConfig.isAnyE2E else { return }
+        rotationDegrees = degrees
+    }
+
+    @MainActor static func recordVideoLoadFailed(photoID: UUID) {
+        guard UITestConfig.isAnyE2E else { return }
+        videoLoadFailedPhotoID = photoID
+    }
+}
+
 enum UITestDataSeeder {
     static func seedIfNeeded(into modelContext: ModelContext) {
-        guard UITestConfig.isEnabled else { return }
+        guard UITestConfig.isEnabled || UITestConfig.isAnyE2E else { return }
 
         let existingCount = (try? modelContext.fetchCount(FetchDescriptor<Photo>())) ?? 0
         if existingCount > 0 { return }
@@ -55,16 +91,34 @@ enum UITestDataSeeder {
         let photos = (try? modelContext.fetch(FetchDescriptor<Photo>())) ?? []
         let albums = (try? modelContext.fetch(FetchDescriptor<Album>())) ?? []
         let tags = (try? modelContext.fetch(FetchDescriptor<Tag>())) ?? []
+        let importedFolders = (try? modelContext.fetch(FetchDescriptor<ImportedFolder>())) ?? []
 
         for photo in photos { modelContext.delete(photo) }
         for album in albums { modelContext.delete(album) }
         for tag in tags { modelContext.delete(tag) }
+        for folder in importedFolders { modelContext.delete(folder) }
 
         seedIfNeeded(into: modelContext)
     }
 
+    static func demoImagesDirectory() -> URL {
+        FileManager.default.temporaryDirectory.appendingPathComponent("CullerUITestImages", isDirectory: true)
+    }
+
+    static func createAdditionalDemoImage(named name: String, color: NSColor, size: Int = 720) -> URL {
+        let base = demoImagesDirectory()
+        try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
+        let url = base.appendingPathComponent("\(name).png")
+        if !FileManager.default.fileExists(atPath: url.path) {
+            if let image = makeDemoImage(title: name, color: color, size: size) {
+                try? writePNG(image: image, to: url)
+            }
+        }
+        return url
+    }
+
     private static func createDemoImages() -> [URL] {
-        let base = FileManager.default.temporaryDirectory.appendingPathComponent("CullerUITestImages", isDirectory: true)
+        let base = demoImagesDirectory()
         try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
 
         let specs: [(String, NSColor)] = [
@@ -129,4 +183,3 @@ enum UITestDataSeeder {
         try data.write(to: url, options: [.atomic])
     }
 }
-

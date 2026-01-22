@@ -20,3 +20,9 @@ xcuserdata/
 *.log
 build.log
 .derivedData
+.derivedData-e2e/
+.derivedData-*/
+.derivedData-*
+.xcresult-*/
+.xcresult*
+.xcui*

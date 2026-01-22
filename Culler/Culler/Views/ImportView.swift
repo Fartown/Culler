@@ -9,7 +9,7 @@ struct ImportView: View {
 
     @State private var isDragging = false
     @State private var selectedFiles: [URL] = []
-    @State private var importMode: ImportMode = .reference
+    @State private var importMode: ImportMode = UITestConfig.isEnabled ? .copy : .reference
     @State private var isImporting = false
     @State private var importProgress: Double = 0
     @State private var processedCount = 0
@@ -45,6 +45,24 @@ struct ImportView: View {
             .padding()
 
             Divider()
+
+            if UITestConfig.isEnabled {
+                HStack(spacing: 12) {
+                    Button("生成测试图片") {
+                        generateDemoImages()
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityIdentifier("uitest_generate_files")
+
+                    Button("生成不可播放视频") {
+                        generateBadVideo()
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityIdentifier("uitest_generate_bad_video")
+                }
+                .padding(.horizontal)
+                .padding(.top, 8)
+            }
 
             if isImporting {
                 VStack(spacing: 16) {
@@ -151,6 +169,23 @@ struct ImportView: View {
                 isPresented = false
             }
         }
+    }
+
+    private func generateDemoImages() {
+        let names = ["UITEST-IMP-1", "UITEST-IMP-2", "UITEST-IMP-3"]
+        for n in names {
+            let url = UITestDataSeeder.createAdditionalDemoImage(named: n, color: .systemIndigo)
+            if !selectedFiles.contains(url) { selectedFiles.append(url) }
+        }
+    }
+
+    private func generateBadVideo() {
+        let dir = UITestDataSeeder.demoImagesDirectory()
+        let url = dir.appendingPathComponent("E2E-BAD-VIDEO.mov")
+        if !FileManager.default.fileExists(atPath: url.path) {
+            FileManager.default.createFile(atPath: url.path, contents: Data("not a video".utf8))
+        }
+        if !selectedFiles.contains(url) { selectedFiles.append(url) }
     }
 
     private func handleDrop(providers: [NSItemProvider]) -> Bool {

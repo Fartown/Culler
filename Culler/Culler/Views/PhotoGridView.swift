@@ -44,7 +44,9 @@ struct PhotoGridView: View {
                                     size: thumbnailSizeCGFloat
                                 )
                                 .id(photo.id)
-                            .accessibilityIdentifier("photo_thumbnail")
+                                .accessibilityElement(children: .ignore)
+                                .accessibilityIdentifier("photo_thumbnail")
+                                .accessibilityLabel(photo.fileName)
                             .highPriorityGesture(TapGesture(count: 2).onEnded {
                                 currentPhoto = photo
                                 onDoubleClick()
