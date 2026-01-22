@@ -12,11 +12,13 @@ struct SidebarFiltersView: View {
                 Text("旗标")
                     .font(UIStyle.captionFont)
                     .foregroundColor(.secondary)
+                    .accessibilityIdentifier("filter_flag_section")
                 HStack(spacing: 16) {
                     FlagIcon(flag: .pick, current: filterFlag) { toggleFlag(.pick) }
                     FlagIcon(flag: .reject, current: filterFlag) { toggleFlag(.reject) }
                     FlagIcon(flag: .none, current: filterFlag) { toggleFlag(.none) }
                 }
+                .accessibilityIdentifier("filter_flag_row")
             }
 
             // 评分
@@ -24,22 +26,27 @@ struct SidebarFiltersView: View {
                 Text("评分 (≥)")
                     .font(UIStyle.captionFont)
                     .foregroundColor(.secondary)
+                    .accessibilityIdentifier("filter_rating_section")
                 HStack(spacing: 4) {
                     ForEach(1...5, id: \.self) { star in
-                        Image(systemName: star <= filterRating ? "star.fill" : "star")
-                            .font(.system(size: 14))
-                            .foregroundColor(star <= filterRating ? .yellow : .secondary.opacity(0.5))
-                            .onTapGesture {
-                                if filterRating == star {
-                                    filterRating = 0
-                                } else {
-                                    filterRating = star
-                                }
+                        Button {
+                            if filterRating == star {
+                                filterRating = 0
+                            } else {
+                                filterRating = star
                             }
-                            .frame(width: 24, height: 24)
-                            .contentShape(Rectangle())
+                        } label: {
+                            Image(systemName: star <= filterRating ? "star.fill" : "star")
+                                .font(.system(size: 14))
+                                .foregroundColor(star <= filterRating ? .yellow : .secondary.opacity(0.5))
+                                .frame(width: 24, height: 24)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("filter_rating_\(star)")
                     }
                 }
+                .accessibilityIdentifier("filter_rating_row")
             }
 
             // 颜色
@@ -47,27 +54,32 @@ struct SidebarFiltersView: View {
                 Text("颜色")
                     .font(UIStyle.captionFont)
                     .foregroundColor(.secondary)
+                    .accessibilityIdentifier("filter_color_section")
                 HStack(spacing: 12) {
                     ForEach(ColorLabel.allCases.filter { $0 != .none }, id: \.rawValue) { label in
-                        Circle()
-                            .fill(Color(label.color))
-                            .frame(width: 14, height: 14)
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.white, lineWidth: filterColorLabel == label ? 2 : 0)
-                            )
-                            .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 1)
-                            .onTapGesture {
-                                if filterColorLabel == label {
-                                    filterColorLabel = nil
-                                } else {
-                                    filterColorLabel = label
-                                }
+                        Button {
+                            if filterColorLabel == label {
+                                filterColorLabel = nil
+                            } else {
+                                filterColorLabel = label
                             }
-                            .scaleEffect(filterColorLabel == label ? 1.1 : 1.0)
-                            .animation(.spring(response: 0.3), value: filterColorLabel)
+                        } label: {
+                            Circle()
+                                .fill(Color(label.color))
+                                .frame(width: 14, height: 14)
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white, lineWidth: filterColorLabel == label ? 2 : 0)
+                                )
+                                .shadow(color: Color.black.opacity(0.2), radius: 1, x: 0, y: 1)
+                                .scaleEffect(filterColorLabel == label ? 1.1 : 1.0)
+                                .animation(.spring(response: 0.3), value: filterColorLabel)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("filter_color_\(label.rawValue)")
                     }
                 }
+                .accessibilityIdentifier("filter_color_row")
             }
         }
         .padding(.vertical, 4)

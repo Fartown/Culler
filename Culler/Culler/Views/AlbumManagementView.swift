@@ -41,18 +41,27 @@ struct AlbumManagementView: View {
 
             Divider()
 
-            HSplitView {
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack {
-                        Text("相册")
-                            .font(.headline)
-                        Spacer()
-                        Button(action: { showNewAlbumSheet = true }) {
-                            Image(systemName: "plus")
+                HSplitView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack {
+                            Text("相册")
+                                .font(.headline)
+                            Spacer()
+                            Button(action: { showNewAlbumSheet = true }) {
+                                Image(systemName: "plus")
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("album_manager_new_album_button")
+                            .help("新建相册")
+                            if UITestConfig.isEnabled {
+                                Button("删除最近创建") {
+                                    deleteLastAlbumIfAny()
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier("album_manager_delete_last_album")
+                            }
                         }
-                        .buttonStyle(.plain)
-                    }
-                    .padding()
+                        .padding()
 
                     List(selection: $selectedAlbum) {
                         ForEach(rootAlbums) { album in
@@ -63,16 +72,25 @@ struct AlbumManagementView: View {
 
                     Divider()
 
-                    HStack {
-                        Text("标签")
-                            .font(.headline)
-                        Spacer()
-                        Button(action: { showNewTagSheet = true }) {
-                            Image(systemName: "plus")
+                        HStack {
+                            Text("标签")
+                                .font(.headline)
+                            Spacer()
+                            Button(action: { showNewTagSheet = true }) {
+                                Image(systemName: "plus")
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("album_manager_new_tag_button")
+                            .help("新建标签")
+                            if UITestConfig.isEnabled {
+                                Button("删除最近创建") {
+                                    deleteLastTagIfAny()
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier("album_manager_delete_last_tag")
+                            }
                         }
-                        .buttonStyle(.plain)
-                    }
-                    .padding()
+                        .padding()
 
                     ScrollView {
                         FlowLayout(spacing: 8) {
@@ -176,6 +194,14 @@ struct AlbumManagementView: View {
 
     private func deleteTag(_ tag: Tag) {
         modelContext.delete(tag)
+    }
+
+    private func deleteLastAlbumIfAny() {
+        if let last = rootAlbums.last { modelContext.delete(last) }
+    }
+
+    private func deleteLastTagIfAny() {
+        if let tag = tags.last { modelContext.delete(tag) }
     }
 }
 

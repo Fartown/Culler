@@ -135,6 +135,7 @@ struct SinglePhotoView: View {
                                 .clipShape(Circle())
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("single_back_button")
 
                         Spacer()
 
@@ -144,6 +145,7 @@ struct SinglePhotoView: View {
                             .padding(.vertical, 6)
                             .background(Color.black.opacity(0.5))
                             .cornerRadius(4)
+                            .accessibilityIdentifier("single_index_label")
 
                         Spacer()
 
@@ -231,12 +233,14 @@ struct SinglePhotoView: View {
             withAnimation(.easeInOut(duration: 0.2)) {
                 rotationDegrees = (rotationDegrees - 90 + 360) % 360
                 offset = .zero
+                E2EProbe.recordRotation(degrees: rotationDegrees)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .rotateRight)) { _ in
             withAnimation(.easeInOut(duration: 0.2)) {
                 rotationDegrees = (rotationDegrees + 90) % 360
                 offset = .zero
+                E2EProbe.recordRotation(degrees: rotationDegrees)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .deletePhoto)) { note in
@@ -477,6 +481,7 @@ struct NavigationArrow: View {
             .clipShape(Circle())
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(direction == .left ? "single_prev_button" : "single_next_button")
     }
 }
 

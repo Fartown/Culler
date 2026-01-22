@@ -38,6 +38,7 @@ struct ToolbarView: View {
             Text("\(photoCount) 张")
                 .foregroundColor(.secondary)
                 .font(.system(size: 13))
+                .accessibilityIdentifier("toolbar_photo_count")
 
             if selectedCount > 0 {
                 Text("• 已选 \(selectedCount)")
@@ -62,6 +63,7 @@ struct ToolbarView: View {
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
+                    .accessibilityIdentifier("toolbar_sync_button")
                 }
 
                 Menu {
@@ -103,6 +105,7 @@ struct ToolbarView: View {
                     .layoutPriority(1)
                 }
                 .menuStyle(.borderlessButton)
+                .accessibilityIdentifier("toolbar_sort_menu")
 
                 HStack(spacing: 6) {
                     Button {
@@ -134,6 +137,7 @@ struct ToolbarView: View {
                                 .foregroundColor(.secondary)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("toolbar_rotate_left")
 
                         Button {
                             NotificationCenter.default.post(name: .rotateRight, object: nil)
@@ -143,6 +147,7 @@ struct ToolbarView: View {
                                 .foregroundColor(.secondary)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("toolbar_rotate_right")
                     }
                 }
 
