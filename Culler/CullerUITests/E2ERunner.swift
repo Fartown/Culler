@@ -17,6 +17,7 @@ enum E2ERunner {
     // E2E_CASE:E2E-09
     // E2E_CASE:E2E-10
     // E2E_CASE:E2E-11
+    // E2E_CASE:E2E-12
 
     private static var didStart = false
 
@@ -191,6 +192,17 @@ enum E2ERunner {
                 E2EProbe.recordVideoLoadFailed(photoID: badPhoto.id)
             }
             guard E2EProbe.videoLoadFailedPhotoID == badPhoto.id else { fail("video fallback not recorded") }
+
+            // E2E-12: 视频播放（有效视频资源）
+            printCase("E2E-12")
+            let demoVideoURL = UITestDataSeeder.createDemoVideo()
+            let demoVideo = Photo(filePath: demoVideoURL.path)
+            modelContext.insert(demoVideo)
+            guard demoVideo.isVideo else { fail("demo video not recognized") }
+            let playable = (try? await withTimeout(seconds: 10) {
+                try await AVAsset(url: demoVideoURL).load(.isPlayable)
+            }) ?? false
+            guard playable else { fail("demo video not playable") }
 
             pass()
         } catch {

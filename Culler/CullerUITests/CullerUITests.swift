@@ -403,6 +403,50 @@ final class CullerUITests: XCTestCase {
         XCTAssertTrue(msg.waitForExistence(timeout: 10))
     }
 
+    func test_E2E_12_Video_Playback_ShowsControls() {
+        launchApp()
+
+        waitForGrid()
+
+        let countLabel = app.staticTexts["toolbar_photo_count"]
+        XCTAssertTrue(countLabel.waitForExistence(timeout: 8))
+        let before = photoCountValue()
+        XCTAssertGreaterThanOrEqual(before, 0)
+
+        let importBtn = app.buttons["sidebar_import_button"]
+        XCTAssertTrue(importBtn.waitForExistence(timeout: 6))
+        importBtn.click()
+
+        let demoVideo = UITestFileGenerator.generateDemoVideo()
+        XCTAssertTrue(FileManager.default.fileExists(atPath: demoVideo.path))
+
+        let chooseFiles = app.buttons["选择文件…"]
+        XCTAssertTrue(chooseFiles.waitForExistence(timeout: 6))
+        chooseFiles.click()
+
+        selectImportFolder(demoVideo.deletingLastPathComponent())
+
+        let start = app.buttons["开始导入"]
+        XCTAssertTrue(start.waitForExistence(timeout: 6))
+        start.click()
+
+        _ = waitForPhotoCountIncrease(from: before, timeout: 12)
+
+        let videoThumb = app.otherElements
+            .matching(identifier: "photo_thumbnail")
+            .matching(NSPredicate(format: "label CONTAINS %@", demoVideo.lastPathComponent))
+            .firstMatch
+        XCTAssertTrue(videoThumb.waitForExistence(timeout: 12))
+        videoThumb.doubleClick()
+
+        let player = app.otherElements["video_player_view"]
+        XCTAssertTrue(player.waitForExistence(timeout: 8))
+
+        let playPause = app.buttons["video_play_pause_button"]
+        XCTAssertTrue(playPause.waitForExistence(timeout: 8))
+        playPause.click()
+    }
+
     func test_Coverage_ExpectedTimeoutPaths() {
         launchApp()
 
@@ -448,8 +492,28 @@ private enum UITestFileGenerator {
         return url
     }
 
+    static func generateDemoVideo() -> URL {
+        let dir = demoImagesDirectory()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let url = dir.appendingPathComponent("E2E-VIDEO-01.mp4")
+        if !FileManager.default.fileExists(atPath: url.path),
+           let source = demoVideoSourceURL() {
+            try? FileManager.default.copyItem(at: source, to: url)
+        }
+        return url
+    }
+
     private static func demoImagesDirectory() -> URL {
         FileManager.default.temporaryDirectory.appendingPathComponent("CullerUITestImages", isDirectory: true)
+    }
+
+    private static func demoVideoSourceURL() -> URL? {
+        let source = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .appendingPathComponent("demo")
+            .appendingPathComponent("01.mp4")
+        guard FileManager.default.fileExists(atPath: source.path) else { return nil }
+        return source
     }
 
     private static func createAdditionalDemoImage(named name: String, color: NSColor, size: Int = 720) -> URL {

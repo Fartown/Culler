@@ -119,6 +119,16 @@ enum UITestDataSeeder {
         return url
     }
 
+    static func createDemoVideo() -> URL {
+        let dir = demoImagesDirectory()
+        let url = dir.appendingPathComponent("E2E-VIDEO-01.mp4")
+        if !FileManager.default.fileExists(atPath: url.path),
+           let source = demoVideoSourceURL() {
+            try? FileManager.default.copyItem(at: source, to: url)
+        }
+        return url
+    }
+
     static func createAdditionalDemoImage(named name: String, color: NSColor, size: Int = 720) -> URL {
         let base = demoImagesDirectory()
         try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
@@ -157,6 +167,15 @@ enum UITestDataSeeder {
             results.append(url)
         }
         return results
+    }
+
+    private static func demoVideoSourceURL() -> URL? {
+        let source = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .appendingPathComponent("demo")
+            .appendingPathComponent("01.mp4")
+        guard FileManager.default.fileExists(atPath: source.path) else { return nil }
+        return source
     }
 
     private static func makeDemoImage(title: String, color: NSColor, size: Int) -> NSImage? {

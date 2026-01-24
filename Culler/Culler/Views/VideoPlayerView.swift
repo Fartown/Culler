@@ -24,6 +24,7 @@ struct VideoPlayerView: View {
         ZStack {
             if let player {
                 AVPlayerContainerView(player: player)
+                    .accessibilityIdentifier("video_player_view")
                     .onAppear {
                         let bridge = VideoControllerBridge(
                             togglePlayPause: { togglePlayPause() },
@@ -92,6 +93,7 @@ struct VideoPlayerView: View {
                         .foregroundColor(.white)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("video_play_pause_button")
 
                 Text(timeString(currentTime))
                     .foregroundColor(.white)

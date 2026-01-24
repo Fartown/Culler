@@ -151,6 +151,18 @@
   - XCUITest: [test_E2E_11_Video_Fallback_Message](file:///Users/bytedance/workspace/ai-demo/culler/Culler/CullerUITests/CullerUITests.swift#L322-L346)
   - Runner: [E2ERunner.swift:run](file:///Users/bytedance/workspace/ai-demo/culler/Culler/Culler/E2ERunner.swift#L80-L201)
 
+### E2E-12 视频播放基础流程
+- 场景与目标：导入可播放视频，进入单图后视频播放器可见且可触发播放。
+- 前置条件：有可播放视频样本（使用 CullerUITests/demo/01.mp4）。
+- 操作步骤（XCUITest）：导入 demo 视频 → 进入该条目 → 验证播放器与播放按钮 → 点击播放。
+- 操作步骤（Runner）：创建 demo 视频条目；校验 AVAsset.isPlayable 为 true。
+- 关键断言：播放器容器存在；播放按钮可见且可点击；视频资源可播放。
+- 涉及模块：视频播放器、导入流程、视频识别。
+- 运行方式：Xcode 或 `run_e2e.sh`。
+- 代码参考：
+  - XCUITest: [test_E2E_12_Video_Playback_ShowsControls](file:///Users/bytedance/workspace/ai-demo/culler/Culler/CullerUITests/CullerUITests.swift#L348-L395)
+  - Runner: [E2ERunner.swift:run](file:///Users/bytedance/workspace/ai-demo/culler/Culler/Culler/E2ERunner.swift#L80-L201)
+
 ## 维护建议
 - 新增用例时按本模板新增小节，并在 Runner/XCUITest 中增加对应标记与断言。
 - UI 标识或脚本参数变更时，同步更新“运行方式”“代码参考”与覆盖率脚本元数据。
