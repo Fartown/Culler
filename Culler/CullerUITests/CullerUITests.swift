@@ -1,4 +1,5 @@
 import XCTest
+import AppKit
 
 final class CullerUITests: XCTestCase {
     private var app: XCUIApplication!
@@ -98,6 +99,48 @@ final class CullerUITests: XCTestCase {
         let thumb = app.otherElements.matching(identifier: "photo_thumbnail").firstMatch
         XCTAssertTrue(thumb.exists)
         thumb.doubleClick()
+    }
+
+    private func selectImportFolder(_ folderURL: URL) {
+        let openPanel = app.dialogs.firstMatch
+        XCTAssertTrue(openPanel.waitForExistence(timeout: 6))
+
+        openPanel.typeKey("g", modifierFlags: [.command, .shift])
+
+        let gotoSheet = app.sheets.firstMatch
+        if gotoSheet.waitForExistence(timeout: 2) {
+            let field = gotoSheet.textFields.firstMatch
+            XCTAssertTrue(field.waitForExistence(timeout: 2))
+            field.typeText(folderURL.path)
+
+            let goButton = gotoSheet.buttons.matching(
+                NSPredicate(format: "label IN %@", ["前往", "Go", "打开", "Open", "确定"])
+            ).firstMatch
+            if goButton.exists {
+                goButton.click()
+            } else {
+                field.typeKey(XCUIKeyboardKey.return, modifierFlags: [])
+            }
+        } else {
+            let field = openPanel.textFields.firstMatch
+            if field.waitForExistence(timeout: 2) {
+                field.click()
+                field.typeText(folderURL.path)
+                field.typeKey(XCUIKeyboardKey.return, modifierFlags: [])
+            } else {
+                openPanel.typeText(folderURL.path)
+                openPanel.typeKey(XCUIKeyboardKey.return, modifierFlags: [])
+            }
+        }
+
+        let openButton = openPanel.buttons.matching(
+            NSPredicate(format: "label IN %@", ["打开", "Open", "选择", "选取", "好", "确定"])
+        ).firstMatch
+        if openButton.waitForExistence(timeout: 2) {
+            openButton.click()
+        } else {
+            openPanel.typeKey(XCUIKeyboardKey.return, modifierFlags: [])
+        }
     }
 
     func test_E2E_01_Launch_ShowsGrid() {
@@ -207,9 +250,16 @@ final class CullerUITests: XCTestCase {
         XCTAssertTrue(importBtn.waitForExistence(timeout: 6))
         importBtn.click()
 
-        let gen = app.buttons["uitest_generate_files"]
-        XCTAssertTrue(gen.waitForExistence(timeout: 6))
-        gen.click()
+        let generator = UITestFileGenerator.generateImportFiles()
+        XCTAssertFalse(generator.isEmpty)
+
+        // 从导入面板中选择包含新增文件的目录
+        let chooseFiles = app.buttons["选择文件…"]
+        XCTAssertTrue(chooseFiles.waitForExistence(timeout: 6))
+        chooseFiles.click()
+
+        let importDir = generator[0].deletingLastPathComponent()
+        selectImportFolder(importDir)
 
         let start = app.buttons["开始导入"]
         XCTAssertTrue(start.waitForExistence(timeout: 6))
@@ -225,9 +275,7 @@ final class CullerUITests: XCTestCase {
         XCTAssertTrue(importBtn.waitForExistence(timeout: 6))
         importBtn.click()
 
-        let gen = app.buttons["uitest_generate_files"]
-        XCTAssertTrue(gen.waitForExistence(timeout: 6))
-        gen.click()
+        _ = UITestFileGenerator.generateImportFiles()
 
         let close = app.buttons["取消"]
         if close.waitForExistence(timeout: 2) { close.click() }
@@ -285,9 +333,14 @@ final class CullerUITests: XCTestCase {
         XCTAssertTrue(createAlbum.waitForExistence(timeout: 6))
         createAlbum.click()
 
-        let delA = app.buttons["album_manager_delete_last_album"]
-        XCTAssertTrue(delA.waitForExistence(timeout: 6))
-        delA.click()
+        let albumCell = app.staticTexts["UITestAlbum"]
+        XCTAssertTrue(albumCell.waitForExistence(timeout: 6))
+        albumCell.click()
+        if app.menuItems["删除"].waitForExistence(timeout: 2) {
+            app.menuItems["删除"].click()
+        } else {
+            albumCell.typeKey(XCUIKeyboardKey.delete, modifierFlags: [])
+        }
 
         let newTag = app.buttons["album_manager_new_tag_button"]
         XCTAssertTrue(newTag.waitForExistence(timeout: 6))
@@ -302,9 +355,9 @@ final class CullerUITests: XCTestCase {
         XCTAssertTrue(createTag.waitForExistence(timeout: 6))
         createTag.click()
 
-        let delT = app.buttons["album_manager_delete_last_tag"]
-        XCTAssertTrue(delT.waitForExistence(timeout: 6))
-        delT.click()
+        let tagDelete = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "删除标签 UITestTag")).firstMatch
+        XCTAssertTrue(tagDelete.waitForExistence(timeout: 6))
+        tagDelete.click()
     }
 
     func test_E2E_10_Inspector_Shows_Info() {
@@ -326,9 +379,14 @@ final class CullerUITests: XCTestCase {
         XCTAssertTrue(importBtn.waitForExistence(timeout: 6))
         importBtn.click()
 
-        let genBad = app.buttons["uitest_generate_bad_video"]
-        XCTAssertTrue(genBad.waitForExistence(timeout: 6))
-        genBad.click()
+        let badVideo = UITestFileGenerator.generateBadVideo()
+
+        let chooseFiles = app.buttons["选择文件…"]
+        XCTAssertTrue(chooseFiles.waitForExistence(timeout: 6))
+        chooseFiles.click()
+
+        let importDir = badVideo.deletingLastPathComponent()
+        selectImportFolder(importDir)
 
         let start = app.buttons["开始导入"]
         XCTAssertTrue(start.waitForExistence(timeout: 6))
@@ -371,5 +429,76 @@ final class CullerUITests: XCTestCase {
 
         XCTExpectFailure("覆盖 waitForPhotoCountChange 的超时失败路径") { _ = waitForPhotoCountChange(from: before, timeout: 0) }
         XCTExpectFailure("覆盖 waitForPhotoCountIncrease 的超时失败路径") { _ = waitForPhotoCountIncrease(from: Int.max, timeout: 0.2) }
+    }
+
+}
+
+private enum UITestFileGenerator {
+    static func generateImportFiles() -> [URL] {
+        let names = ["UITEST-IMP-1", "UITEST-IMP-2", "UITEST-IMP-3"]
+        return names.map { createAdditionalDemoImage(named: $0, color: .systemIndigo) }
+    }
+
+    static func generateBadVideo() -> URL {
+        let dir = demoImagesDirectory()
+        let url = dir.appendingPathComponent("E2E-BAD-VIDEO.mov")
+        if !FileManager.default.fileExists(atPath: url.path) {
+            FileManager.default.createFile(atPath: url.path, contents: Data("not a video".utf8))
+        }
+        return url
+    }
+
+    private static func demoImagesDirectory() -> URL {
+        FileManager.default.temporaryDirectory.appendingPathComponent("CullerUITestImages", isDirectory: true)
+    }
+
+    private static func createAdditionalDemoImage(named name: String, color: NSColor, size: Int = 720) -> URL {
+        let base = demoImagesDirectory()
+        try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
+        let url = base.appendingPathComponent("\(name).png")
+        if !FileManager.default.fileExists(atPath: url.path) {
+            if let image = makeDemoImage(title: name, color: color, size: size) {
+                try? writePNG(image: image, to: url)
+            }
+        }
+        return url
+    }
+
+    private static func makeDemoImage(title: String, color: NSColor, size: Int) -> NSImage? {
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        defer { image.unlockFocus() }
+
+        color.setFill()
+        NSBezierPath(rect: NSRect(x: 0, y: 0, width: size, height: size)).fill()
+
+        let shadow = NSShadow()
+        shadow.shadowColor = NSColor.black.withAlphaComponent(0.35)
+        shadow.shadowBlurRadius = 8
+        shadow.shadowOffset = NSSize(width: 0, height: -2)
+
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = .center
+
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: CGFloat(size) * 0.09, weight: .bold),
+            .foregroundColor: NSColor.white,
+            .paragraphStyle: paragraph,
+            .shadow: shadow
+        ]
+
+        let text = NSString(string: title)
+        let rect = NSRect(x: 0, y: (CGFloat(size) * 0.45), width: CGFloat(size), height: CGFloat(size) * 0.2)
+        text.draw(in: rect, withAttributes: attrs)
+        return image
+    }
+
+    private static func writePNG(image: NSImage, to url: URL) throws {
+        guard let tiff = image.tiffRepresentation,
+              let rep = NSBitmapImageRep(data: tiff),
+              let data = rep.representation(using: .png, properties: [:]) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        try data.write(to: url, options: [.atomic])
     }
 }

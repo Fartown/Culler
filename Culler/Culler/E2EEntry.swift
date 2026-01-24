@@ -1,8 +1,9 @@
 import SwiftUI
 import SwiftData
 
+#if E2E
 @main
-struct CullerApp: App {
+struct E2EEntry: App {
     private static let schema = Schema([
         Photo.self,
         Album.self,
@@ -24,7 +25,9 @@ struct CullerApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-            .preferredColorScheme(.dark)
+                .preferredColorScheme(.dark)
+                .overlay(E2ESeedView())
+                .onAppear { E2ERunner.startIfNeeded() }
         }
         .modelContainer(sharedModelContainer)
         .windowStyle(.hiddenTitleBar)
@@ -35,7 +38,6 @@ struct CullerApp: App {
             FolderCommands()
             PanelCommands()
             ZoomCommands()
-
         }
 
         Settings {
@@ -43,4 +45,20 @@ struct CullerApp: App {
         }
     }
 }
- 
+
+private struct E2ESeedView: View {
+    @Environment(\.modelContext) private var modelContext
+
+    var body: some View {
+        Color.clear
+            .onAppear {
+                guard UITestConfig.isEnabled else { return }
+                if UITestConfig.shouldResetDemoData {
+                    UITestDataSeeder.reset(into: modelContext)
+                } else {
+                    UITestDataSeeder.seedIfNeeded(into: modelContext)
+                }
+            }
+    }
+}
+#endif

@@ -131,11 +131,13 @@ enum E2ERunner {
 
             // E2E-07: 导入（模拟：新增文件 + 新增 Photo）
             printCase("E2E-07")
-            let importURL = UITestDataSeeder.createAdditionalDemoImage(named: "E2E-IMPORT-01", color: .systemIndigo)
             let beforeImportCount = (try? modelContext.fetchCount(FetchDescriptor<Photo>())) ?? 0
-            modelContext.insert(Photo(filePath: importURL.path))
+            let importURLs = UITestDataSeeder.createImportFiles()
+            for url in importURLs {
+                modelContext.insert(Photo(filePath: url.path))
+            }
             let afterImportCount = (try? modelContext.fetchCount(FetchDescriptor<Photo>())) ?? 0
-            guard afterImportCount == beforeImportCount + 1 else { fail("import insert failed") }
+            guard afterImportCount == beforeImportCount + importURLs.count else { fail("import insert failed") }
 
             // E2E-08: 文件夹同步（磁盘新增 -> sync 入库）
             printCase("E2E-08")
@@ -178,10 +180,7 @@ enum E2ERunner {
 
             // E2E-11: 视频识别与播放失败兜底（不可播放视频 -> 记录失败）
             printCase("E2E-11")
-            let badVideoURL = folderURL.appendingPathComponent("E2E-BAD-VIDEO.mov")
-            if !FileManager.default.fileExists(atPath: badVideoURL.path) {
-                FileManager.default.createFile(atPath: badVideoURL.path, contents: Data("not a video".utf8))
-            }
+            let badVideoURL = UITestDataSeeder.createBadVideo()
             let badPhoto = Photo(filePath: badVideoURL.path)
             modelContext.insert(badPhoto)
             guard badPhoto.isVideo else { fail("bad video not recognized as video") }

@@ -53,13 +53,6 @@ struct AlbumManagementView: View {
                             .buttonStyle(.plain)
                             .accessibilityIdentifier("album_manager_new_album_button")
                             .help("新建相册")
-                            if UITestConfig.isEnabled {
-                                Button("删除最近创建") {
-                                    deleteLastAlbumIfAny()
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityIdentifier("album_manager_delete_last_album")
-                            }
                         }
                         .padding()
 
@@ -82,13 +75,6 @@ struct AlbumManagementView: View {
                             .buttonStyle(.plain)
                             .accessibilityIdentifier("album_manager_new_tag_button")
                             .help("新建标签")
-                            if UITestConfig.isEnabled {
-                                Button("删除最近创建") {
-                                    deleteLastTagIfAny()
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityIdentifier("album_manager_delete_last_tag")
-                            }
                         }
                         .padding()
 
@@ -196,13 +182,6 @@ struct AlbumManagementView: View {
         modelContext.delete(tag)
     }
 
-    private func deleteLastAlbumIfAny() {
-        if let last = rootAlbums.last { modelContext.delete(last) }
-    }
-
-    private func deleteLastTagIfAny() {
-        if let tag = tags.last { modelContext.delete(tag) }
-    }
 }
 
 struct AlbumRow: View {
@@ -280,6 +259,7 @@ struct TagChip: View {
                     .font(.system(size: 8))
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("删除标签 \(tag.name)")
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)

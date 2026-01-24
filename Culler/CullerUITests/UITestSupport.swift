@@ -105,6 +105,20 @@ enum UITestDataSeeder {
         FileManager.default.temporaryDirectory.appendingPathComponent("CullerUITestImages", isDirectory: true)
     }
 
+    static func createImportFiles() -> [URL] {
+        let names = ["UITEST-IMP-1", "UITEST-IMP-2", "UITEST-IMP-3"]
+        return names.map { createAdditionalDemoImage(named: $0, color: .systemIndigo) }
+    }
+
+    static func createBadVideo() -> URL {
+        let dir = demoImagesDirectory()
+        let url = dir.appendingPathComponent("E2E-BAD-VIDEO.mov")
+        if !FileManager.default.fileExists(atPath: url.path) {
+            FileManager.default.createFile(atPath: url.path, contents: Data("not a video".utf8))
+        }
+        return url
+    }
+
     static func createAdditionalDemoImage(named name: String, color: NSColor, size: Int = 720) -> URL {
         let base = demoImagesDirectory()
         try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
@@ -182,4 +196,5 @@ enum UITestDataSeeder {
         }
         try data.write(to: url, options: [.atomic])
     }
+
 }

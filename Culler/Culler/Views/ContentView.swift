@@ -355,7 +355,7 @@ struct ContentView: View {
                 .frame(minWidth: 900, minHeight: 600)
         })
 
-        view = AnyView(view.onReceive(NotificationCenter.default.publisher(for: UITestNotifications.openAlbumManager)) { _ in
+        view = AnyView(view.onReceive(NotificationCenter.default.publisher(for: .openAlbumManager)) { _ in
             showAlbumManager = true
         })
 
@@ -469,20 +469,8 @@ struct ContentView: View {
             Task {
                 await restoreFolderPermissionsAsync()
             }
-            if UITestConfig.shouldResetDemoData {
-                UITestDataSeeder.reset(into: modelContext)
-            } else {
-                UITestDataSeeder.seedIfNeeded(into: modelContext)
-            }
         })
 
-        view = AnyView(view.onAppear {
-            if ProcessInfo.processInfo.arguments.contains("-e2e") {
-                Task { @MainActor in
-                    // 运行方式迁移到 E2ERunner（无界面依赖，便于 CI/本地命令行跑）
-                }
-            }
-        })
 
         view = AnyView(view.alert("同步完成", isPresented: Binding(get: { syncResultText != nil }, set: { if !$0 { syncResultText = nil } })) {
             Button("好的") { syncResultText = nil }

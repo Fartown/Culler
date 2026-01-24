@@ -233,14 +233,12 @@ struct SinglePhotoView: View {
             withAnimation(.easeInOut(duration: 0.2)) {
                 rotationDegrees = (rotationDegrees - 90 + 360) % 360
                 offset = .zero
-                E2EProbe.recordRotation(degrees: rotationDegrees)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .rotateRight)) { _ in
             withAnimation(.easeInOut(duration: 0.2)) {
                 rotationDegrees = (rotationDegrees + 90) % 360
                 offset = .zero
-                E2EProbe.recordRotation(degrees: rotationDegrees)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .deletePhoto)) { note in

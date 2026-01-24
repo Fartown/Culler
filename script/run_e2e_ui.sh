@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT="$ROOT/Culler/Culler.xcodeproj"
-SCHEME="Culler"
+SCHEME="CullerE2E"
 
 DERIVED_DATA="${DERIVED_DATA:-$ROOT/.derivedData-e2e-ui}"
 
@@ -18,8 +18,8 @@ xcodebuild \
   -quiet \
   build
 
-APP="$DERIVED_DATA/Build/Products/Debug/Culler.app"
-BIN="$APP/Contents/MacOS/Culler"
+APP="$DERIVED_DATA/Build/Products/Debug/CullerE2E.app"
+BIN="$APP/Contents/MacOS/CullerE2E"
 
 if [[ ! -x "$BIN" ]]; then
   echo "Built app not found: $BIN" >&2
