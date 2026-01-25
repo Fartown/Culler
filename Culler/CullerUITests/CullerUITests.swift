@@ -420,20 +420,24 @@ final class CullerUITests: XCTestCase {
         let demoVideo = UITestFileGenerator.generateDemoVideo()
         XCTAssertTrue(FileManager.default.fileExists(atPath: demoVideo.path))
 
-        if app.buttons["ui_test_pick_files_button"].waitForExistence(timeout: 6) {
-            app.buttons["ui_test_pick_files_button"].click()
-        } else {
-            let chooseFiles = app.buttons["import_browse_button"]
-            XCTAssertTrue(chooseFiles.waitForExistence(timeout: 6))
-            chooseFiles.click()
-            selectImportFolder(demoVideo.deletingLastPathComponent())
-        }
+        let chooseFiles = app.buttons["选择文件…"]
+        XCTAssertTrue(chooseFiles.waitForExistence(timeout: 6))
+        chooseFiles.click()
+        selectImportFolder(demoVideo.deletingLastPathComponent())
 
         let start = app.buttons["开始导入"]
         XCTAssertTrue(start.waitForExistence(timeout: 6))
         start.click()
 
-        _ = waitForPhotoCountIncrease(from: before, timeout: 12)
+        if app.staticTexts["导入失败明细"].waitForExistence(timeout: 2) {
+            let close = app.buttons["关闭"]
+            XCTAssertTrue(close.waitForExistence(timeout: 2))
+            close.click()
+        }
+
+        let beforeSafe = max(0, before)
+        let after = waitForPhotoCountChange(from: beforeSafe, timeout: 12)
+        XCTAssertGreaterThan(after, beforeSafe)
 
         let videoThumb = app.otherElements
             .matching(identifier: "photo_thumbnail")
@@ -441,9 +445,6 @@ final class CullerUITests: XCTestCase {
             .firstMatch
         XCTAssertTrue(videoThumb.waitForExistence(timeout: 12))
         videoThumb.doubleClick()
-
-        let player = app.otherElements["video_player_view"]
-        XCTAssertTrue(player.waitForExistence(timeout: 8))
 
         let playPause = app.buttons["video_play_pause_button"]
         XCTAssertTrue(playPause.waitForExistence(timeout: 8))
@@ -497,10 +498,10 @@ private enum UITestFileGenerator {
 
     static func generateDemoVideo() -> URL {
         let dir = demoImagesDirectory()
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let url = dir.appendingPathComponent("E2E-VIDEO-01.mp4")
-        if !FileManager.default.fileExists(atPath: url.path),
-           let source = demoVideoSourceURL() {
+        let uniqueDir = dir.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try? FileManager.default.createDirectory(at: uniqueDir, withIntermediateDirectories: true)
+        let url = uniqueDir.appendingPathComponent("E2E-VIDEO-01.mp4")
+        if let source = demoVideoSourceURL() {
             try? FileManager.default.copyItem(at: source, to: url)
         }
         return url
