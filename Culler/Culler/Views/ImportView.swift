@@ -19,6 +19,7 @@ struct ImportView: View {
     @State private var showImportErrorSheet = false
     @State private var statusText: String?
     @State private var selectedFolderPaths: Set<String> = []
+    private let uiTestTempFolderName = "CullerUITestImages"
 
     enum ImportMode: String, CaseIterable {
         case reference = "引用（不拷贝）"
@@ -63,12 +64,22 @@ struct ImportView: View {
                 }
                 .padding(40)
             } else if selectedFiles.isEmpty {
-                DropZoneView(
-                    isDragging: $isDragging,
-                    onDrop: handleDrop,
-                    onBrowse: browseFiles
-                )
-                .padding(24)
+                VStack(spacing: 12) {
+                    DropZoneView(
+                        isDragging: $isDragging,
+                        onDrop: handleDrop,
+                        onBrowse: browseFiles
+                    )
+                    .padding(24)
+
+                    if isUITesting {
+                        Button("UI 测试：加载临时目录文件") {
+                            addUITestFilesFromTempDirectory()
+                        }
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("ui_test_pick_files_button")
+                    }
+                }
             } else {
                 VStack(spacing: 16) {
                     ScrollView {
@@ -316,6 +327,26 @@ struct ImportView: View {
         }
     }
 
+    private var isUITesting: Bool {
+        ProcessInfo.processInfo.arguments.contains("-ui-testing")
+    }
+
+    private func addUITestFilesFromTempDirectory() {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(uiTestTempFolderName, isDirectory: true)
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: dir.path, isDirectory: &isDirectory), isDirectory.boolValue else {
+            return
+        }
+        selectedFolderPaths.insert(dir.standardizedFileURL.path)
+        if let enumerator = FileManager.default.enumerator(at: dir, includingPropertiesForKeys: nil) {
+            while let fileURL = enumerator.nextObject() as? URL {
+                if isImageFile(fileURL) && !selectedFiles.contains(fileURL) {
+                    selectedFiles.append(fileURL)
+                }
+            }
+        }
+    }
+
     @MainActor
     private func existingImportedFilePathSet() -> Set<String> {
         let desc = FetchDescriptor<Photo>()
@@ -501,6 +532,7 @@ struct DropZoneView: View {
                 onBrowse()
             }
             .buttonStyle(.bordered)
+            .accessibilityIdentifier("import_browse_button")
 
             Text("支持：JPEG、PNG、HEIC、TIFF、RAW、视频")
                 .font(.caption)

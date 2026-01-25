@@ -420,11 +420,14 @@ final class CullerUITests: XCTestCase {
         let demoVideo = UITestFileGenerator.generateDemoVideo()
         XCTAssertTrue(FileManager.default.fileExists(atPath: demoVideo.path))
 
-        let chooseFiles = app.buttons["选择文件…"]
-        XCTAssertTrue(chooseFiles.waitForExistence(timeout: 6))
-        chooseFiles.click()
-
-        selectImportFolder(demoVideo.deletingLastPathComponent())
+        if app.buttons["ui_test_pick_files_button"].waitForExistence(timeout: 6) {
+            app.buttons["ui_test_pick_files_button"].click()
+        } else {
+            let chooseFiles = app.buttons["import_browse_button"]
+            XCTAssertTrue(chooseFiles.waitForExistence(timeout: 6))
+            chooseFiles.click()
+            selectImportFolder(demoVideo.deletingLastPathComponent())
+        }
 
         let start = app.buttons["开始导入"]
         XCTAssertTrue(start.waitForExistence(timeout: 6))
