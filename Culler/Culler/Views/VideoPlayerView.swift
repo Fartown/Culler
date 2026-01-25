@@ -24,7 +24,6 @@ struct VideoPlayerView: View {
         ZStack {
             if let player {
                 AVPlayerContainerView(player: player)
-                    .accessibilityIdentifier("video_player_view")
                     .onAppear {
                         let bridge = VideoControllerBridge(
                             togglePlayPause: { togglePlayPause() },
@@ -71,6 +70,7 @@ struct VideoPlayerView: View {
                 controlsOverlay
             }
         }
+        .accessibilityIdentifier("video_player_view")
         .onTapGesture(count: 2) {
             if doubleTapAction == "fullscreen" {
                 toggleFullscreen()
@@ -309,6 +309,7 @@ struct AVPlayerContainerView: NSViewRepresentable {
         view.player = player
         view.controlsStyle = .none
         view.showsFullScreenToggleButton = false
+        view.setAccessibilityIdentifier("video_player_view")
         return view
     }
 
@@ -316,6 +317,7 @@ struct AVPlayerContainerView: NSViewRepresentable {
         nsView.player = player
         nsView.controlsStyle = .none
         nsView.showsFullScreenToggleButton = false
+        nsView.setAccessibilityIdentifier("video_player_view")
     }
 }
 

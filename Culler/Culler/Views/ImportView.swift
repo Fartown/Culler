@@ -1,6 +1,8 @@
 import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
+import AVFoundation
+import CoreVideo
 
 struct ImportView: View {
     @Binding var isPresented: Bool
@@ -337,6 +339,7 @@ struct ImportView: View {
         guard FileManager.default.fileExists(atPath: dir.path, isDirectory: &isDirectory), isDirectory.boolValue else {
             return
         }
+        ensureUITestVideoFile(in: dir)
         selectedFolderPaths.insert(dir.standardizedFileURL.path)
         if let enumerator = FileManager.default.enumerator(at: dir, includingPropertiesForKeys: nil) {
             while let fileURL = enumerator.nextObject() as? URL {
@@ -345,6 +348,87 @@ struct ImportView: View {
                 }
             }
         }
+    }
+
+    private func ensureUITestVideoFile(in directory: URL) {
+        let url = directory.appendingPathComponent("E2E-VIDEO-01.mp4")
+        if FileManager.default.fileExists(atPath: url.path) { return }
+        _ = createSolidColorVideo(at: url, width: 640, height: 360, frameCount: 10)
+    }
+
+    private func createSolidColorVideo(at url: URL, width: Int, height: Int, frameCount: Int) -> Bool {
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? FileManager.default.removeItem(at: url)
+
+        guard let writer = try? AVAssetWriter(outputURL: url, fileType: .mp4) else { return false }
+        let settings: [String: Any] = [
+            AVVideoCodecKey: AVVideoCodecType.h264,
+            AVVideoWidthKey: width,
+            AVVideoHeightKey: height
+        ]
+        let input = AVAssetWriterInput(mediaType: .video, outputSettings: settings)
+        input.expectsMediaDataInRealTime = false
+
+        let attrs: [String: Any] = [
+            kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32ARGB),
+            kCVPixelBufferWidthKey as String: width,
+            kCVPixelBufferHeightKey as String: height
+        ]
+        let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: attrs)
+        guard writer.canAdd(input) else { return false }
+        writer.add(input)
+
+        guard writer.startWriting() else { return false }
+        writer.startSession(atSourceTime: .zero)
+
+        let timescale: Int32 = 10
+        for i in 0..<frameCount {
+            while !input.isReadyForMoreMediaData {
+                RunLoop.current.run(until: Date().addingTimeInterval(0.01))
+            }
+            guard let buffer = makePixelBuffer(width: width, height: height, argb: (255, 32, 160, 255)) else { continue }
+            let time = CMTime(value: CMTimeValue(i), timescale: timescale)
+            adaptor.append(buffer, withPresentationTime: time)
+        }
+
+        input.markAsFinished()
+        let group = DispatchGroup()
+        group.enter()
+        writer.finishWriting {
+            group.leave()
+        }
+        group.wait()
+        return FileManager.default.fileExists(atPath: url.path)
+    }
+
+    private func makePixelBuffer(width: Int, height: Int, argb: (UInt8, UInt8, UInt8, UInt8)) -> CVPixelBuffer? {
+        var buffer: CVPixelBuffer?
+        let attrs: [String: Any] = [
+            kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32ARGB),
+            kCVPixelBufferWidthKey as String: width,
+            kCVPixelBufferHeightKey as String: height
+        ]
+        guard CVPixelBufferCreate(kCFAllocatorDefault, width, height, kCVPixelFormatType_32ARGB, attrs as CFDictionary, &buffer) == kCVReturnSuccess,
+              let pixelBuffer = buffer else {
+            return nil
+        }
+        CVPixelBufferLockBaseAddress(pixelBuffer, [])
+        defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, []) }
+
+        guard let base = CVPixelBufferGetBaseAddress(pixelBuffer) else { return nil }
+        let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
+        let ptr = base.assumingMemoryBound(to: UInt8.self)
+        for y in 0..<height {
+            let row = ptr.advanced(by: y * bytesPerRow)
+            for x in 0..<width {
+                let offset = x * 4
+                row[offset] = argb.0
+                row[offset + 1] = argb.1
+                row[offset + 2] = argb.2
+                row[offset + 3] = argb.3
+            }
+        }
+        return pixelBuffer
     }
 
     @MainActor
